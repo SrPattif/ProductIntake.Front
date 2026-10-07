@@ -1,0 +1,2401 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Intake de Demandas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<script>
+  // Aplica o tema escolhido manualmente antes da primeira pintura, para não piscar.
+  (function () {
+    try {
+      var saved = localStorage.getItem('intake-theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) { /* armazenamento indisponível: segue o sistema */ }
+  })();
+</script>
+<style>
+/* Layout: transcrição de entrevista à esquerda (papel e horário numa calha) e, ao lado,
+   a folha do brief que a IA vai preenchendo como um documento de trabalho. */
+:root {
+  /* Cor */
+  --paper: #EDF1EF;
+  --surface: #FAFCFB;
+  --surface-2: #E2E8E5;
+  --ink: #14201C;
+  --ink-2: #43514C;
+  --ink-3: #5A6762;
+  --line: #D2DAD6;
+  --line-strong: #B3BFBA;
+  --accent: #0E6B5B;
+  --accent-hover: #0A5A4C;
+  --accent-ink: #F3FAF8;
+  --accent-soft: #D5EAE3;
+  --mark: #F8E59B;
+  --danger: #A3392A;
+  --shadow-sheet: 0 1px 2px rgb(20 32 28 / .05), 0 18px 40px -24px rgb(20 32 28 / .3);
+  --shadow-float: 0 1px 2px rgb(20 32 28 / .06), 0 10px 24px -12px rgb(20 32 28 / .24);
+  --scrim: rgb(13 20 18 / .42);
+
+  /* Tipo */
+  --font-ui: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-doc: "Newsreader", "Iowan Old Style", Charter, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-2xs: .6875rem;  /* 11 */
+  --fs-xs: .75rem;     /* 12 */
+  --fs-sm: .8125rem;   /* 13 */
+  --fs-base: 1rem;     /* 16 */
+  --fs-md: 1.0625rem;  /* 17 */
+  --fs-lg: 1.5rem;     /* 24 */
+
+  /* Ritmo */
+  --ease: cubic-bezier(.22, .8, .24, 1);
+  --gutter: 24px;
+  --rail: 72px;
+  --column: 820px;
+  --brief-w: clamp(360px, 31vw, 460px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D1311;
+    --surface: #141C1A;
+    --surface-2: #1D2825;
+    --ink: #E2EAE6;
+    --ink-2: #AEBAB5;
+    --ink-3: #8D9A95;
+    --line: #26322E;
+    --line-strong: #3B4945;
+    --accent: #5CC0A8;
+    --accent-hover: #7AD0BB;
+    --accent-ink: #062520;
+    --accent-soft: #15332D;
+    --mark: rgb(236 200 84 / .3);
+    --danger: #EC8A75;
+    --shadow-sheet: 0 1px 2px rgb(0 0 0 / .4), 0 20px 44px -24px rgb(0 0 0 / .7);
+    --shadow-float: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -14px rgb(0 0 0 / .65);
+    --scrim: rgb(0 0 0 / .58);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D1311;
+  --surface: #141C1A;
+  --surface-2: #1D2825;
+  --ink: #E2EAE6;
+  --ink-2: #AEBAB5;
+  --ink-3: #8D9A95;
+  --line: #26322E;
+  --line-strong: #3B4945;
+  --accent: #5CC0A8;
+  --accent-hover: #7AD0BB;
+  --accent-ink: #062520;
+  --accent-soft: #15332D;
+  --mark: rgb(236 200 84 / .3);
+  --danger: #EC8A75;
+  --shadow-sheet: 0 1px 2px rgb(0 0 0 / .4), 0 20px 44px -24px rgb(0 0 0 / .7);
+  --shadow-float: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -14px rgb(0 0 0 / .65);
+  --scrim: rgb(0 0 0 / .58);
+  color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--fs-base)/1.55 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+svg { display: block; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+kbd {
+  font: 500 var(--fs-2xs)/1 var(--font-mono);
+  padding: 2px 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ink-2);
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Estrutura ---------- */
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--brief-w);
+  min-height: 0;
+}
+
+/* ---------- Barra superior ---------- */
+.topbar {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 12px var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { width: 28px; height: 28px; flex: none; }
+.bm-sheet { fill: var(--accent); }
+.bm-lines { fill: none; stroke: var(--accent-ink); stroke-width: 1.7; stroke-linecap: round; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-name { margin: 0; font: 600 .9375rem/1.2 var(--font-ui); letter-spacing: -.005em; white-space: nowrap; }
+.brand-tag {
+  font: 500 10px/1.4 var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.progress { justify-self: center; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.progress-count {
+  display: none;
+  font: 500 var(--fs-2xs)/1 var(--font-mono);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; }
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 .78rem/1.2 var(--font-ui);
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: color .3s;
+}
+.step + .step::before {
+  content: "";
+  width: 22px;
+  height: 1.5px;
+  margin-inline: 8px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  transition: background .4s;
+}
+.step[data-state="done"] + .step::before { background: var(--accent); }
+.step-mark {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  color: var(--accent-ink);
+  transition: background .3s, border-color .3s;
+}
+.step-mark svg { width: 10px; height: 10px; opacity: 0; transform: scale(.6); transition: opacity .25s, transform .3s var(--ease); }
+.step[data-state="current"] { color: var(--ink); }
+.step[data-state="current"] .step-mark { border-color: var(--accent); }
+.step[data-state="current"] .step-mark::after {
+  content: "";
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.step[data-state="current"] .step-mark::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  opacity: 0;
+  animation: ring 2.6s var(--ease) infinite;
+}
+.step[data-state="done"] { color: var(--ink-2); }
+.step[data-state="done"] .step-mark { background: var(--accent); border-color: var(--accent); }
+.step[data-state="done"] .step-mark svg { opacity: 1; transform: none; }
+.steps[data-complete="true"] .step:last-child { color: var(--accent); font-weight: 600; }
+
+.actions { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-2);
+  font: 500 .875rem/1 var(--font-ui);
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn:hover { background: var(--surface-2); color: var(--ink); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-icon { width: 36px; padding: 0; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+.btn-brief { display: none; }
+.badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 var(--fs-2xs)/20px var(--font-mono);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.badge.is-bump { animation: bump .6s var(--ease); }
+.btn-brief.is-attention { border-color: var(--accent); animation: attention 1.8s var(--ease) 2; }
+.theme-toggle .ic-sun, .theme-toggle[data-effective="dark"] .ic-moon { display: none; }
+.theme-toggle[data-effective="dark"] .ic-sun { display: block; }
+
+/* ---------- Conversa ---------- */
+.chat { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.transcript:focus-visible { outline-offset: -3px; }
+.log {
+  max-width: var(--column);
+  margin-inline: auto;
+  padding: 28px var(--gutter) 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.session-mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: calc(var(--rail) + 20px);
+  font: 500 var(--fs-2xs)/1.4 var(--font-mono);
+  letter-spacing: .04em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.session-mark::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.turn {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  column-gap: 20px;
+  animation: turn-in .38s var(--ease) both;
+}
+.turn-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-top: 4px;
+  text-align: right;
+}
+.who {
+  font: 600 var(--fs-2xs)/1.3 var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.turn--ai .who { color: var(--accent); }
+.turn-meta time {
+  font: 400 var(--fs-2xs)/1.3 var(--font-mono);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.turn-body { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.bubble {
+  margin: 0;
+  max-width: 64ch;
+  padding: 10px 14px;
+  border-radius: 4px 14px 14px 14px;
+  background: var(--surface-2);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg-text {
+  max-width: 64ch;
+  font-size: var(--fs-md);
+  line-height: 1.62;
+  overflow-wrap: anywhere;
+}
+.msg-text p { margin: 0; }
+.msg-text p + p { margin-top: .7em; }
+.msg-text strong { font-weight: 600; }
+.msg-text.is-streaming p:last-child::after {
+  content: "";
+  display: inline-block;
+  width: .45em;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -.16em;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: caret 1s steps(2, start) infinite;
+}
+.msg-error { margin: 0; color: var(--danger); font-size: .9375rem; }
+
+.thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 3px;
+  font: 500 .78rem/1.4 var(--font-mono);
+  color: var(--ink-3);
+}
+.thinking-dots { display: inline-flex; gap: 4px; }
+.thinking-dots i {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .25;
+  animation: dot 1.2s ease-in-out infinite;
+}
+.thinking-dots i:nth-child(2) { animation-delay: .15s; }
+.thinking-dots i:nth-child(3) { animation-delay: .3s; }
+
+/* Atividades da IA: secundárias, em monoespaçada, recolhíveis */
+.acts { width: 100%; max-width: 64ch; font: 400 .78rem/1.5 var(--font-mono); color: var(--ink-3); }
+.acts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -6px;
+  padding: 3px 8px 3px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.acts-toggle:hover { background: var(--surface-2); color: var(--ink-2); }
+.acts-icon {
+  display: grid;
+  place-items: center;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: spin .9s linear infinite;
+}
+.acts-icon svg { display: none; width: 12px; height: 12px; }
+.acts[data-state="done"] .acts-icon { animation: none; border-color: transparent; color: var(--accent); }
+.acts[data-state="done"] .acts-icon svg { display: block; }
+.acts-chevron svg { width: 14px; height: 14px; transition: transform .25s var(--ease); }
+.acts[data-collapsed="true"] .acts-chevron svg { transform: rotate(-90deg); }
+.acts-panel {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows .34s var(--ease), opacity .24s;
+}
+.acts[data-collapsed="true"] .acts-panel { grid-template-rows: 0fr; opacity: 0; }
+.acts-list { min-height: 0; overflow: hidden; list-style: none; margin: 0; padding: 4px 0 0; }
+.act {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 4px 0;
+  animation: act-in .3s var(--ease) both;
+}
+.act:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 5.5px;
+  top: 19px;
+  bottom: -8px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.act-dot {
+  width: 7px; height: 7px;
+  margin: 6px 0 0 2.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-3);
+}
+.act[data-state="running"] .act-dot { border-color: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.act[data-state="done"] .act-dot { background: var(--ink-3); }
+.act-text { min-width: 0; overflow-wrap: anywhere; }
+.act-label { color: var(--ink-2); }
+.act[data-state="running"] .act-label::after { content: "…"; }
+.act-result:not(:empty)::before { content: " → "; }
+
+/* Respostas sugeridas */
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 2px; }
+.chip-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 .875rem/1.3 var(--font-ui);
+  text-align: left;
+  animation: chip-in .32s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+  transition: border-color .15s, background .15s, transform .15s;
+}
+.chip-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.chip-btn:active { transform: translateY(1px); }
+
+/* ---------- Doca: campo de entrada e estado final ---------- */
+.dock {
+  position: relative;
+  flex: none;
+  padding: 6px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+}
+.dock::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 12px;
+  bottom: 100%;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, var(--paper));
+  pointer-events: none;
+}
+.dock-inner { position: relative; max-width: calc(var(--column) - 2 * var(--gutter)); margin-inline: auto; }
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  transition: border-color .15s, box-shadow .15s;
+}
+.composer-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-float); }
+.composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 1.5em;
+  max-height: 10.5em;
+  padding: 7px 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  font: 400 1rem/1.5 var(--font-ui);
+}
+.composer textarea::placeholder { color: var(--ink-3); opacity: 1; }
+.send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  transition: background .15s, transform .15s;
+}
+.send svg { width: 18px; height: 18px; }
+.send:hover:not(:disabled) { background: var(--accent-hover); }
+.send:active:not(:disabled) { transform: translateY(1px); }
+.send:disabled { background: var(--surface-2); color: var(--ink-3); cursor: not-allowed; }
+.composer-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 18px;
+  margin: 8px 2px 0;
+  font: 400 var(--fs-2xs)/1.6 var(--font-mono);
+  color: var(--ink-3);
+}
+.hint-status { margin-left: auto; text-align: right; }
+
+.jump {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-float);
+  font: 500 .8125rem/1 var(--font-ui);
+  animation: chip-in .25s var(--ease) both;
+}
+.jump svg { width: 14px; height: 14px; }
+
+.done-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  animation: turn-in .45s var(--ease) both;
+}
+.done-card:focus-visible { outline-offset: 3px; }
+.done-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.done-icon svg { width: 16px; height: 16px; }
+.done-text { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.done-text strong { font-weight: 600; }
+.done-text span { font-size: .875rem; color: var(--ink-2); }
+.done-text b { font: 600 .8125rem/1 var(--font-mono); color: var(--ink); }
+.done-actions { display: flex; gap: 8px; }
+.btn-view-brief { display: none; }
+
+/* ---------- Brief ---------- */
+.brief {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 20px 32px;
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.brief:focus-visible { outline-offset: -3px; }
+.drawer-bar { display: none; }
+.brief-sheet {
+  position: relative;
+  padding: 22px 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+  transition: border-color .5s;
+}
+.brief-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brief-heading {
+  margin: 0;
+  font: 600 var(--fs-2xs)/1.3 var(--font-mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pill {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transition: background .3s, color .3s;
+}
+.pill[data-tone="ready"] { background: var(--accent-soft); color: var(--accent); }
+.pill[data-tone="submitted"] { background: var(--accent); color: var(--accent-ink); }
+.brief-title {
+  margin: 12px 0 6px;
+  font: 500 var(--fs-lg)/1.2 var(--font-doc);
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.brief-title.is-empty { font-style: italic; font-weight: 400; color: var(--ink-3); }
+.brief-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 0;
+  font: 400 .72rem/1.5 var(--font-mono);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.origin { margin: 16px 0 0; padding: 10px 12px 11px; border-radius: 8px; background: var(--paper); }
+.origin-label {
+  display: block;
+  margin-bottom: 4px;
+  font: 600 10px/1.3 var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.origin-text { margin: 0; font: italic 400 .98rem/1.5 var(--font-doc); color: var(--ink-2); overflow-wrap: anywhere; }
+
+.bsec { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bsec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.bsec-title {
+  margin: 0;
+  font: 600 .72rem/1.3 var(--font-ui);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.bsec-count { font: 500 var(--fs-2xs)/1 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bsec-count:empty { display: none; }
+.bsec-empty { margin: 0; font: italic 400 .95rem/1.5 var(--font-doc); color: var(--ink-3); }
+.bsec-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 500 .875rem/1.4 var(--font-ui);
+  color: var(--accent);
+  animation: fade-in .4s ease .7s both;
+}
+.bsec-done svg { width: 16px; height: 16px; }
+.objective { margin: 0; font: 400 var(--fs-md)/1.5 var(--font-doc); }
+
+.items { list-style: none; margin: 0 -8px; padding: 0; }
+.item { display: grid; grid-template-rows: 1fr; }
+.item-clip { min-height: 0; overflow: hidden; }
+.item-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.item-id {
+  min-width: 2.6em;
+  font: 600 var(--fs-2xs)/1 var(--font-mono);
+  letter-spacing: .02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.item-text { font: 400 var(--fs-base)/1.5 var(--font-doc); overflow-wrap: anywhere; transition: color .3s; }
+.item-text strong {
+  font: 600 .66rem/1 var(--font-ui);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.q-mark {
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 18px; height: 18px;
+  margin-top: 3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  font: 600 10px/1 var(--font-mono);
+  color: var(--ink-2);
+  transition: background .25s, border-color .25s, color .25s;
+}
+.q-mark svg { width: 11px; height: 11px; }
+.q-ok { display: none; }
+.is-resolved .q-mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.is-resolved .q-q { display: none; }
+.is-resolved .q-ok { display: block; }
+.is-resolved .item-text {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+}
+.clar { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+.clar-q { font: 400 .78rem/1.45 var(--font-ui); color: var(--ink-3); }
+.clar-a { font: 400 var(--fs-base)/1.5 var(--font-doc); overflow-wrap: anywhere; }
+
+.systems { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; row-gap: 8px; }
+.sys { display: inline-flex; align-items: center; }
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 11px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--paper);
+}
+.chip-name { font: 600 .78rem/1.25 var(--font-mono); color: var(--ink); }
+.chip-role { font: 400 .72rem/1.25 var(--font-ui); color: var(--ink-3); }
+.sys-link { padding-inline: 7px; font: 400 .8125rem/1 var(--font-mono); color: var(--ink-3); animation: fade-in .3s ease both; }
+
+/* Destaque de marca-texto: o que a IA acabou de registrar */
+.hl { position: relative; isolation: isolate; }
+.hl::before {
+  content: "";
+  position: absolute;
+  inset: -2px -6px;
+  z-index: -1;
+  border-radius: 6px;
+  background: var(--mark);
+  opacity: 0;
+  transform-origin: left center;
+  pointer-events: none;
+}
+.item-content.hl::before { inset: 0; }
+.is-fresh.hl::before, .is-fresh .hl::before { animation: mark-sweep 2.8s var(--ease) both; }
+.sys.is-fresh .chip { animation: chip-mark 2.8s var(--ease) both; }
+
+.item.is-entering { animation: item-in .46s var(--ease) both; }
+.item.is-leaving { animation: item-out .36s ease-in both; }
+.sys.is-entering { animation: chip-in .42s var(--ease) both; }
+.sys.is-leaving { animation: chip-out .3s ease-in both; }
+.objective.is-entering, .origin.is-entering { animation: fade-in .4s ease both; }
+
+/* Carimbo e fechamento */
+.stamp {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 13px 7px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px var(--accent);
+  color: var(--accent);
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  pointer-events: none;
+}
+.stamp-top { font: 600 9px/1 var(--font-mono); letter-spacing: .2em; }
+.stamp-main { font: 700 .95rem/1.05 var(--font-mono); letter-spacing: .06em; }
+.stamp-meta { font: 500 9px/1 var(--font-mono); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.brief-sheet.is-closed { border-color: var(--accent); }
+.brief-sheet.is-closed .pill { visibility: hidden; }
+.brief-sheet.is-stamping { animation: sheet-press .7s var(--ease) .12s; }
+.brief-sheet.is-stamping .stamp { animation: stamp-in .6s cubic-bezier(.2, 1.25, .4, 1) .12s both; }
+.brief-foot {
+  margin: 22px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--accent);
+  font: 400 .75rem/1.55 var(--font-mono);
+  color: var(--ink-2);
+  animation: fade-in .5s ease .5s both;
+}
+
+.scrim { display: none; }
+
+/* ---------- Animações ---------- */
+@keyframes turn-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes act-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+@keyframes chip-in { from { opacity: 0; transform: translateY(4px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes chip-out { to { opacity: 0; transform: scale(.92); } }
+@keyframes item-in { from { grid-template-rows: 0fr; opacity: 0; transform: translateY(4px); } to { grid-template-rows: 1fr; opacity: 1; transform: none; } }
+@keyframes item-out { from { grid-template-rows: 1fr; opacity: 1; } to { grid-template-rows: 0fr; opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mark-sweep {
+  0% { opacity: 1; transform: scaleX(0); }
+  14% { opacity: 1; transform: scaleX(1); }
+  58% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes mark-fade { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes chip-mark {
+  0%, 50% { background: var(--mark); border-color: var(--accent); }
+  100% { background: var(--paper); border-color: var(--line-strong); }
+}
+@keyframes stamp-in {
+  0% { opacity: 0; transform: rotate(-18deg) scale(1.8); }
+  55% { opacity: 1; transform: rotate(-6deg) scale(.94); }
+  100% { opacity: 1; transform: rotate(-7deg) scale(1); }
+}
+@keyframes sheet-press { 0%, 100% { transform: none; } 40% { transform: translateY(2px) scale(.994); } }
+@keyframes ring { 0% { opacity: .55; transform: scale(.6); } 70%, 100% { opacity: 0; transform: scale(1.25); } }
+@keyframes dot { 0%, 80%, 100% { opacity: .25; transform: none; } 40% { opacity: 1; transform: translateY(-2px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 4px var(--accent-soft); } }
+@keyframes caret { to { visibility: hidden; } }
+@keyframes bump { 0%, 100% { transform: none; } 35% { transform: scale(1.3); } }
+@keyframes attention { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 5px var(--accent-soft); } }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1319.98px) {
+  .step:not([aria-current]) .step-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .step + .step::before { width: 14px; margin-inline: 5px; }
+  .progress-count { display: inline; }
+}
+@media (max-width: 899.98px) {
+  :root { --gutter: 16px; }
+  .topbar { grid-template-columns: minmax(0, 1fr) auto; padding-block: 10px; }
+  .progress { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .btn-brief, .btn-view-brief { display: inline-flex; }
+
+  .brief {
+    position: fixed;
+    z-index: 30;
+    top: 0; right: 0; bottom: 0;
+    width: min(440px, 100%);
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+    box-shadow: var(--shadow-float);
+    transform: translateX(104%);
+    visibility: hidden;
+    transition: transform .36s var(--ease), visibility 0s linear .36s;
+  }
+  .brief.is-open { transform: none; visibility: visible; transition: transform .36s var(--ease), visibility 0s; }
+  .drawer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .drawer-title {
+    font: 600 var(--fs-2xs)/1.3 var(--font-mono);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: var(--scrim);
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .scrim.is-visible { opacity: 1; }
+}
+@media (max-width: 599.98px) {
+  .turn { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .turn-meta { flex-direction: row; align-items: baseline; gap: 8px; padding-top: 0; }
+  .session-mark { padding-left: 0; }
+  .log { gap: 24px; padding-top: 20px; }
+  .restart-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .btn-restart { width: 36px; padding: 0; }
+  .brief-sheet { padding: 20px 18px 22px; }
+}
+@media (max-width: 479.98px) {
+  .brand-long, .brand-tag { display: none; }
+}
+@media (pointer: coarse) {
+  .kbd-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* O destaque continua, mas só como mudança de cor, sem movimento. */
+  .is-fresh.hl::before, .is-fresh .hl::before { animation: mark-fade 2.6s linear both !important; }
+  .sys.is-fresh .chip { animation: chip-mark 2.6s linear both !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+        <rect class="bm-sheet" x="2" y="2" width="24" height="24" rx="7"/>
+        <path class="bm-lines" d="M8.5 10h11M8.5 14h11M8.5 18h6"/>
+      </svg>
+      <div class="brand-text">
+        <h1 class="brand-name">Intake<span class="brand-long"> de demandas</span></h1>
+        <span class="brand-tag">Protótipo · IA simulada</span>
+      </div>
+    </div>
+
+    <div class="progress" role="group" aria-label="Estado da sessão">
+      <ol class="steps" id="steps">
+        <li class="step" data-step="understanding">
+          <span class="step-mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="step-label">Entendendo a demanda</span><span class="visually-hidden step-sr"></span>
+        </li>
+        <li class="step" data-step="clarifying">
+          <span class="step-mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="step-label">Esclarecendo detalhes</span><span class="visually-hidden step-sr"></span>
+        </li>
+        <li class="step" data-step="ready">
+          <span class="step-mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="step-label">Pronto para planejamento</span><span class="visually-hidden step-sr"></span>
+        </li>
+        <li class="step" data-step="submitted">
+          <span class="step-mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="step-label">Enviado para planejamento</span><span class="visually-hidden step-sr"></span>
+        </li>
+      </ol>
+      <span class="progress-count" id="progress-count" aria-hidden="true">1/4</span>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-brief" id="brief-toggle" aria-controls="brief" aria-expanded="false" aria-label="Abrir brief da demanda (0 itens)">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.75h5.25l3 3v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.25 8h4M6.25 10.75h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span>Brief</span>
+        <span class="badge" id="brief-count">0</span>
+      </button>
+      <button type="button" class="btn btn-icon theme-toggle" id="theme-toggle" aria-label="Ativar tema escuro" title="Ativar tema escuro">
+        <svg class="ic-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <svg class="ic-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.15 1.15M11.45 11.45l1.15 1.15M3.4 12.6l1.15-1.15M11.45 4.55l1.15-1.15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" class="btn btn-restart" id="restart" title="Reiniciar a simulação">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.9 8.2a5.1 5.1 0 1 0 1.55-3.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2.6 2.6v2.8h2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="restart-label">Reiniciar</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="chat" id="chat" aria-label="Conversa com a IA de intake">
+      <div class="transcript" id="transcript" tabindex="0" aria-label="Histórico da conversa">
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="dock">
+        <div class="dock-inner">
+          <button type="button" class="jump" id="jump" hidden>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v9.5M3.75 8.25 8 12.5l4.25-4.25" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Novas mensagens
+          </button>
+
+          <form class="composer" id="composer" data-busy="false" novalidate>
+            <div class="composer-box">
+              <label class="visually-hidden" for="input">Mensagem para a IA de intake</label>
+              <textarea id="input" name="message" rows="1" placeholder="Descreva o que você precisa…" autocomplete="off"></textarea>
+              <button type="submit" class="send" id="send" aria-label="Enviar mensagem" disabled>
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M3.75 7.75 8 3.5l4.25 4.25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="composer-hint">
+              <span class="kbd-hint"><kbd>Enter</kbd> envia · <kbd>Shift</kbd> + <kbd>Enter</kbd> quebra linha</span>
+              <span class="hint-status" id="hint-status"></span>
+            </div>
+          </form>
+
+          <div class="done-card" id="done-card" tabindex="-1" hidden>
+            <span class="done-icon" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div class="done-text">
+              <strong>Enviado para planejamento</strong>
+              <span>Protocolo <b id="done-protocol"></b>. Você será notificado quando o plano estiver pronto.</span>
+            </div>
+            <div class="done-actions">
+              <button type="button" class="btn btn-view-brief" id="done-view">Ver brief</button>
+              <button type="button" class="btn btn-primary" id="done-new">Nova demanda</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="scrim" id="scrim" hidden></div>
+
+    <aside class="brief" id="brief" aria-labelledby="brief-heading" tabindex="0">
+      <div class="drawer-bar">
+        <span class="drawer-title" aria-hidden="true">Brief</span>
+        <button type="button" class="btn" id="brief-close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Fechar
+        </button>
+      </div>
+
+      <article class="brief-sheet" id="brief-sheet">
+        <div class="stamp" id="stamp" aria-hidden="true" hidden>
+          <span class="stamp-top">Enviado para</span>
+          <span class="stamp-main">Planejamento</span>
+          <span class="stamp-meta" id="stamp-meta"></span>
+        </div>
+
+        <header class="brief-head">
+          <div class="brief-eyebrow">
+            <h2 class="brief-heading" id="brief-heading">Brief da demanda</h2>
+            <span class="pill" id="brief-pill" data-tone="draft">Rascunho</span>
+          </div>
+          <h3 class="brief-title hl is-empty" id="brief-title">Demanda sem título</h3>
+          <p class="brief-meta"><span id="brief-version">Rascunho · v0</span><span id="brief-updated">Aguardando a descrição</span></p>
+          <figure class="origin hl" id="origin" hidden>
+            <figcaption class="origin-label">Nas palavras do solicitante</figcaption>
+            <blockquote class="origin-text" id="origin-text"></blockquote>
+          </figure>
+        </header>
+
+        <section class="bsec" aria-labelledby="sec-objective">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-objective">Objetivo</h4></div>
+          <p class="bsec-empty" id="objective-empty">O objetivo aparece aqui assim que a IA entender a demanda.</p>
+          <p class="objective hl" id="objective" hidden></p>
+        </section>
+
+        <section class="bsec" aria-labelledby="sec-rules">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-rules">Regras de negócio</h4><span class="bsec-count" id="rules-count"></span></div>
+          <p class="bsec-empty" id="rules-empty">As regras surgem das suas respostas.</p>
+          <ol class="items" id="rules"></ol>
+        </section>
+
+        <section class="bsec" aria-labelledby="sec-acceptance">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-acceptance">Critérios de aceite</h4><span class="bsec-count" id="acceptance-count"></span></div>
+          <p class="bsec-empty" id="acceptance-empty">Cada regra ganha um critério no formato dado, quando, então.</p>
+          <ol class="items" id="acceptance"></ol>
+        </section>
+
+        <section class="bsec" aria-labelledby="sec-systems">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-systems">Sistemas identificados</h4><span class="bsec-count" id="systems-count"></span></div>
+          <p class="bsec-empty" id="systems-empty">A IA consulta o mapa de sistemas e lista aqui os afetados.</p>
+          <ul class="systems" id="systems"></ul>
+        </section>
+
+        <section class="bsec" aria-labelledby="sec-open">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-open">Perguntas em aberto</h4><span class="bsec-count" id="open-count"></span></div>
+          <p class="bsec-empty" id="open-empty">As dúvidas que bloqueiam o planejamento aparecem aqui.</p>
+          <p class="bsec-done" id="open-done" hidden>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.25 8.25l1.9 1.9 3.6-4.15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Nenhuma dúvida bloqueante
+          </p>
+          <ul class="items" id="open"></ul>
+        </section>
+
+        <section class="bsec" aria-labelledby="sec-clar">
+          <div class="bsec-head"><h4 class="bsec-title" id="sec-clar">Esclarecimentos</h4><span class="bsec-count" id="clar-count"></span></div>
+          <p class="bsec-empty" id="clar-empty">Suas respostas às perguntas ficam registradas aqui.</p>
+          <ul class="items" id="clar"></ul>
+        </section>
+
+        <p class="brief-foot" id="brief-foot" hidden></p>
+      </article>
+    </aside>
+  </main>
+
+  <div class="visually-hidden" id="announcer" aria-live="polite" aria-relevant="additions"></div>
+</div>
+
+<noscript><p style="padding:16px">Este protótipo precisa de JavaScript para funcionar.</p></noscript>
+
+<!-- =====================================================================
+     CAMADA DE SERVIÇO
+     A UI só conhece este contrato. Para trocar a simulação por uma API real,
+     defina window.INTAKE_API_URL antes deste script (ver adaptador SSE abaixo).
+
+     Serviço:
+       start({ signal })              → AsyncIterable<IntakeEvent>  (abre a sessão)
+       sendMessage(text, { signal })  → AsyncIterable<IntakeEvent>
+
+     IntakeEvent:
+       { type: "thinking" }
+       { type: "tool_activity", id?, label, state?: "running" | "done", result? }
+       { type: "text_delta", text }
+       { type: "brief_updated", brief }            // snapshot completo do brief
+       { type: "suggestions", options: string[] }
+       { type: "status", value: "understanding" | "clarifying" | "ready" | "submitted" }
+       { type: "error", message }
+       { type: "done" }
+
+     Brief:
+       { version, status, title, origin, objective,
+         rules: [{ id, text }], acceptance: [{ id, text }],
+         systems: [{ id, name, role, consumes? }],
+         openQuestions: [{ id, text }],
+         clarifications: [{ id, question, answer }],
+         protocol, submittedAt, updatedAt }
+     Textos aceitam **negrito**.
+     ===================================================================== -->
+<script>
+'use strict';
+
+/**
+ * Simulação da IA de intake. Segue um roteiro fixo (data prevista de entrega na
+ * tela de estoque) e avança a cada mensagem, qualquer que seja o conteúdo.
+ * As respostas digitadas viram esclarecimentos no brief; quando batem com uma
+ * das sugestões, também geram regra e critério de aceite específicos.
+ */
+function createSimulatedIntakeService(options) {
+  const speed = Number(options && options.speed) > 0 ? Number(options.speed) : 1;
+  let state = initialState();
+
+  const QUESTIONS = {
+    location: { id: 'q-location', text: 'A data deve aparecer só no detalhe do pedido ou também na listagem?' },
+    noDate: { id: 'q-nodate', text: 'O que mostrar quando o pedido não tiver data prevista?' },
+    change: { id: 'q-change', text: 'A data pode mudar depois de exibida? O usuário precisa ver alterações?' },
+    profiles: { id: 'q-profiles', text: 'Algum perfil de usuário não deve ver essa informação?' },
+  };
+  const CONFIRM_OPTIONS = ['Sim, pode enviar', 'Quero ajustar algo'];
+
+  function initialState() {
+    return {
+      phase: 'describe',
+      actSeq: 0,
+      answers: {},
+      brief: {
+        version: 0, status: 'understanding', title: null, origin: null, objective: null,
+        rules: [], acceptance: [], systems: [], openQuestions: [], clarifications: [],
+        protocol: null, submittedAt: null, updatedAt: null,
+      },
+    };
+  }
+
+  function abortError() {
+    return new DOMException('A operação foi cancelada.', 'AbortError');
+  }
+
+  // Ferramentas do roteiro, presas ao sinal de cancelamento da chamada.
+  function kit(signal) {
+    const wait = (ms) => new Promise((resolve, reject) => {
+      if (signal && signal.aborted) { reject(abortError()); return; }
+      const timer = setTimeout(() => {
+        if (signal) signal.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms * speed);
+      function onAbort() { clearTimeout(timer); reject(abortError()); }
+      if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    });
+    const around = (ms) => ms * (0.8 + Math.random() * 0.4);
+
+    return {
+      async *think(ms = 800) {
+        yield { type: 'thinking' };
+        await wait(around(ms));
+      },
+      async *tool(label, result, ms = 1000) {
+        const id = `act-${++state.actSeq}`;
+        yield { type: 'tool_activity', id, label, state: 'running' };
+        await wait(around(ms));
+        yield { type: 'tool_activity', id, label, state: 'done', result };
+        await wait(180);
+      },
+      async *say(text) {
+        const tokens = text.match(/\s*\S+/g) || [];
+        let i = 0;
+        while (i < tokens.length) {
+          const size = Math.random() < 0.35 ? 2 : 1;
+          const chunk = tokens.slice(i, i + size).join('');
+          i += size;
+          yield { type: 'text_delta', text: chunk };
+          let pause = 16 + Math.random() * 26;
+          if (/[.?!:]\**$/.test(chunk)) pause += 130;
+          else if (/,$/.test(chunk)) pause += 50;
+          if (/^\s*\n/.test(tokens[i] || '')) pause += 180;
+          await wait(pause);
+        }
+      },
+      *brief(mutate) {
+        mutate(state.brief);
+        state.brief.version += 1;
+        state.brief.updatedAt = new Date().toISOString();
+        yield { type: 'brief_updated', brief: JSON.parse(JSON.stringify(state.brief)) };
+      },
+      *status(value) {
+        state.brief.status = value;
+        yield { type: 'status', value };
+      },
+      *suggest(options) {
+        yield { type: 'suggestions', options };
+      },
+    };
+  }
+
+  // ---- Leitura das respostas ------------------------------------------------
+
+  const pad = (n) => String(n).padStart(2, '0');
+  function shorten(text, max) {
+    const t = String(text).replace(/\s+/g, ' ').trim();
+    return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  }
+  const quote = (text, max = 80) => `“${shorten(text, max).replace(/[\s.!?;,]+$/, '')}”`;
+
+  function readLocation(a) {
+    const mentionsList = /listag|lista\b|grade|tabela|coluna/i.test(a) && !/n[aã]o[^.]*listag/i.test(a);
+    const mentionsDetail = /detalh/i.test(a) && !/n[aã]o[^.]*detalh/i.test(a);
+    if (/ambos|ambas|os dois|as duas|dois lugares|tamb[eé]m/i.test(a) || (mentionsList && mentionsDetail)) {
+      return {
+        ack: 'Combinado, a data aparece na listagem e no detalhe do pedido.',
+        label: 'na listagem de estoque e no detalhe do pedido',
+        rule: 'A data prevista de entrega aparece na listagem de estoque e no detalhe do pedido, sempre com o mesmo valor.',
+        criterion: '**Dado** um pedido com data prevista, **quando** o usuário consulta a listagem de estoque ou abre o detalhe do pedido, **então** vê a mesma data nos dois lugares.',
+      };
+    }
+    if (mentionsList) {
+      return {
+        ack: 'Combinado, a data aparece na listagem de estoque.',
+        label: 'na listagem de estoque',
+        rule: 'A data prevista de entrega aparece na listagem de estoque, na linha de cada pedido.',
+        criterion: '**Dado** um pedido com data prevista, **quando** o usuário consulta a listagem de estoque, **então** vê a data na linha do pedido.',
+      };
+    }
+    if (mentionsDetail) {
+      return {
+        ack: 'Combinado, a data fica só no detalhe do pedido e a listagem continua como está.',
+        label: 'só no detalhe do pedido',
+        rule: 'A data prevista de entrega aparece no detalhe do pedido. A listagem de estoque não muda.',
+        criterion: '**Dado** um pedido com data prevista, **quando** o usuário abre o detalhe do pedido na tela de estoque, **então** vê a data prevista de entrega.',
+      };
+    }
+    return {
+      ack: 'Registrei sua resposta como esclarecimento.',
+      label: quote(a, 60),
+      rule: `Local de exibição definido pelo solicitante: ${quote(a, 140)}.`,
+      criterion: '**Dado** um pedido com data prevista, **quando** o usuário acessa a tela de estoque, **então** vê a data no local combinado com o solicitante.',
+    };
+  }
+
+  function readNoDate(a) {
+    const shows = (label) => ({
+      ack: `Pedidos sem data vão mostrar “${label}”.`,
+      label: `aparece “${label}”`,
+      rule: `Pedido sem data prevista exibe o texto “${label}” no lugar da data.`,
+      criterion: `**Dado** um pedido sem data prevista, **quando** o usuário o visualiza, **então** vê “${label}” no lugar da data.`,
+    });
+    if (/sem previs/i.test(a)) return shows('Sem previsão');
+    if (/confirmar/i.test(a)) return shows('A confirmar');
+    if (/branco|vazi|nada|tra[cç]o|oculta|esconde/i.test(a)) {
+      return {
+        ack: 'Pedidos sem data vão ficar com o campo vazio.',
+        label: 'o campo fica vazio',
+        rule: 'Pedido sem data prevista mostra o campo vazio, sem texto substituto.',
+        criterion: '**Dado** um pedido sem data prevista, **quando** o usuário o visualiza, **então** o campo de data aparece vazio.',
+      };
+    }
+    return {
+      ack: 'Registrei sua resposta como esclarecimento.',
+      label: quote(a, 60),
+      rule: `Pedido sem data prevista: ${quote(a, 140)}.`,
+      criterion: '**Dado** um pedido sem data prevista, **quando** o usuário o visualiza, **então** a tela segue o comportamento combinado com o solicitante.',
+    };
+  }
+
+  function readChange(a) {
+    if (/anterior|antig|hist[oó]ric/i.test(a)) {
+      return {
+        ack: 'Quando a data mudar, a tela mostra a nova data e a anterior.',
+        label: 'a tela mostra a nova data e a anterior',
+        rule: 'Quando a data prevista mudar, a tela mostra a nova data e a data anterior.',
+        criterion: '**Dado** um pedido cuja data prevista foi reprogramada no ERP, **quando** o usuário o visualiza, **então** vê a nova data e a data anterior.',
+      };
+    }
+    if (/^\s*n[aã]o\b|n[aã]o precisa|basta|s[oó] a atual|apenas a atual|sem sinaliz/i.test(a)) {
+      return {
+        ack: 'A tela mostra sempre a data mais recente, sem sinalizar a mudança.',
+        label: 'a tela mostra só a data mais recente',
+        rule: 'A tela sempre mostra a data prevista mais recente, sem sinalizar alterações.',
+        criterion: '**Dado** um pedido cuja data prevista foi reprogramada no ERP, **quando** o usuário o visualiza, **então** vê apenas a data atualizada.',
+      };
+    }
+    if (/sim|sinaliz|destac|avis|alert|indic|perceb|mostrar que mud/i.test(a)) {
+      return {
+        ack: 'Quando a data mudar, a tela vai sinalizar a alteração.',
+        label: 'a tela sinaliza que a data mudou',
+        rule: 'Quando a data prevista mudar, a tela sinaliza que ela foi alterada.',
+        criterion: '**Dado** um pedido cuja data prevista foi reprogramada no ERP, **quando** o usuário o visualiza, **então** vê a nova data com a indicação de que ela mudou.',
+      };
+    }
+    return {
+      ack: 'Registrei sua resposta como esclarecimento.',
+      label: quote(a, 60),
+      rule: `Mudança de data prevista: ${quote(a, 140)}.`,
+      criterion: '**Dado** um pedido cuja data prevista foi reprogramada no ERP, **quando** o usuário o visualiza, **então** a tela segue o comportamento combinado com o solicitante.',
+    };
+  }
+
+  function readProfiles(a) {
+    if (/(^|\s)(s[oó]|somente|apenas)\s[^.]*comprador[^.]*gestor/i.test(a)) {
+      return {
+        ack: 'Só Comprador e Gestor veem a data.',
+        label: 'só Comprador e Gestor',
+        rule: 'Só os perfis Comprador e Gestor veem a data prevista de entrega.',
+        criterion: '**Dado** um usuário com perfil Operador ou Auditor externo, **quando** acessa a tela de estoque, **então** a data prevista não aparece.',
+      };
+    }
+    if (/auditor/i.test(a)) {
+      return {
+        ack: 'O Auditor externo não vê a data. Os demais perfis veem.',
+        label: 'todos os perfis, exceto Auditor externo',
+        rule: 'O perfil Auditor externo não vê a data prevista. Operador, Comprador e Gestor veem.',
+        criterion: '**Dado** um usuário com perfil Auditor externo, **quando** acessa a tela de estoque, **então** a data prevista não aparece.',
+      };
+    }
+    if (/todos|todo mundo|qualquer|nenhum|sem restri|liberad|livre/i.test(a)) {
+      return {
+        ack: 'Todos os perfis veem a data.',
+        label: 'todos os perfis',
+        rule: 'Todos os perfis do Stock.Web (Operador, Comprador, Gestor e Auditor externo) veem a data prevista.',
+        criterion: '**Dado** um usuário de qualquer perfil, **quando** acessa a tela de estoque, **então** vê a data prevista.',
+      };
+    }
+    return {
+      ack: 'Registrei sua resposta como esclarecimento.',
+      label: quote(a, 60),
+      rule: `Visibilidade por perfil: ${quote(a, 140)}.`,
+      criterion: '**Dado** um usuário de cada perfil do Stock.Web, **quando** acessa a tela de estoque, **então** vê ou deixa de ver a data conforme combinado com o solicitante.',
+    };
+  }
+
+  function recordAnswer(brief, question, text, reading) {
+    brief.openQuestions = brief.openQuestions.filter((q) => q.id !== question.id);
+    brief.clarifications.push({ id: `cl-${question.id}`, question: question.text, answer: shorten(text, 280) });
+    brief.rules.push({ id: `RN${pad(brief.rules.length + 1)}`, text: reading.rule });
+    brief.acceptance.push({ id: `CA${pad(brief.acceptance.length + 1)}`, text: reading.criterion });
+  }
+
+  function isConfirmation(text) {
+    const no = /\b(n[aã]o|ajust|mud|alter|corrig|espera|antes|falt)/i.test(text);
+    const yes = /\b(sim|pode|envi|mand|ok|okay|confirm|isso|claro|bora|vamos|certo|perfeito|segue|positivo|beleza)/i.test(text);
+    return yes && !no;
+  }
+
+  // ---- Roteiro --------------------------------------------------------------
+
+  const phases = {
+    async *describe(k, text) {
+      yield* k.think(900);
+      yield* k.brief((b) => { b.origin = shorten(text, 280); });
+      yield* k.tool('Lendo o mapa de sistemas da empresa', '3 sistemas ligados a estoque e pedidos', 1100);
+      yield* k.tool('Consultando perfil do Stock.Web', 'front do Stock, onde fica a tela de estoque', 950);
+      yield* k.brief((b) => {
+        b.systems.push({ id: 'stock-web', name: 'Stock.Web', role: 'Tela de estoque', consumes: 'stock-api' });
+      });
+      yield* k.tool('Verificando de onde a Stock.Api lê os pedidos', 'consome o Bridge via HTTP', 950);
+      yield* k.brief((b) => {
+        b.systems.push({ id: 'stock-api', name: 'Stock.Api', role: 'Gestão de estoque', consumes: 'bridge' });
+      });
+      yield* k.tool('Verificando quem consome o endpoint de pedidos do Bridge', 'a Stock.Api é o único consumidor', 1000);
+      yield* k.brief((b) => {
+        b.systems.push({ id: 'bridge', name: 'Bridge', role: 'Integração com o ERP' });
+        b.title = 'Data prevista de entrega na tela de estoque';
+        b.objective = 'Mostrar a data prevista de entrega de cada pedido na tela de estoque, para que quem acompanha o estoque saiba quando a mercadoria vai chegar.';
+      });
+      yield* k.say('Entendi. Vocês querem ver, na tela de estoque, quando cada pedido deve chegar.\n\nPelo que conheço do ecossistema, essa tela fica no **Stock.Web**, que lê os dados da **Stock.Api**. A Stock.Api, por sua vez, busca os pedidos no **Bridge**, que traz as informações do ERP. Já registrei o objetivo e os três sistemas no brief.');
+      yield* k.status('clarifying');
+      yield* k.brief((b) => {
+        b.openQuestions.push({ ...QUESTIONS.location }, { ...QUESTIONS.noDate }, { ...QUESTIONS.profiles });
+      });
+      yield* k.say('\n\nAntes de seguir, quero esclarecer alguns pontos de negócio. Anotei as dúvidas no brief e vou perguntar uma de cada vez.\n\nComeçando pelo local: **a data prevista deve aparecer só no detalhe do pedido ou também na listagem?**');
+      yield* k.suggest(['Só no detalhe do pedido', 'Na listagem e no detalhe', 'Só na listagem']);
+      state.phase = 'location';
+    },
+
+    async *location(k, text) {
+      const reading = readLocation(text);
+      state.answers.location = reading;
+      yield* k.think(700);
+      yield* k.brief((b) => recordAnswer(b, QUESTIONS.location, text, reading));
+      yield* k.tool('Conferindo como a tela de estoque apresenta os pedidos', 'listagem com detalhe por pedido', 900);
+      yield* k.say(`${reading.ack} Registrei como regra de negócio e critério de aceite.\n\nPróximo ponto: **quando o pedido ainda não tiver data prevista, o que a tela deve mostrar?**`);
+      yield* k.suggest(['Mostrar “Sem previsão”', 'Deixar em branco', 'Mostrar “A confirmar”']);
+      state.phase = 'noDate';
+    },
+
+    async *noDate(k, text) {
+      const reading = readNoDate(text);
+      state.answers.noDate = reading;
+      yield* k.think(700);
+      yield* k.brief((b) => recordAnswer(b, QUESTIONS.noDate, text, reading));
+      yield* k.tool('Verificando como o Bridge recebe a data prevista do ERP', 'a data pode ser reprogramada no ERP; sincroniza a cada 15 min', 1200);
+      yield* k.brief((b) => { b.openQuestions.unshift({ ...QUESTIONS.change }); });
+      yield* k.say(`${reading.ack}\n\nNa consulta ao Bridge apareceu um ponto novo. No ERP a data prevista pode ser reprogramada, e o Bridge sincroniza essas mudanças a cada 15 minutos. Ou seja, a data pode mudar depois que o usuário já a viu. Acrescentei essa dúvida ao brief.\n\n**Quando a data prevista mudar, o usuário precisa perceber que ela foi alterada?**`);
+      yield* k.suggest(['Sim, sinalizar que a data mudou', 'Sim, e mostrar a data anterior', 'Não, basta mostrar a data atual']);
+      state.phase = 'change';
+    },
+
+    async *change(k, text) {
+      const reading = readChange(text);
+      state.answers.change = reading;
+      yield* k.think(700);
+      yield* k.brief((b) => recordAnswer(b, QUESTIONS.change, text, reading));
+      yield* k.tool('Consultando perfis de acesso do Stock.Web', '4 perfis: Operador, Comprador, Gestor e Auditor externo', 1000);
+      yield* k.say(`${reading.ack}\n\nÚltima pergunta. O Stock.Web tem quatro perfis de acesso: Operador, Comprador, Gestor e Auditor externo. **Algum desses perfis não deve ver a data prevista de entrega?**`);
+      yield* k.suggest(['Todos podem ver', 'Auditor externo não deve ver', 'Só Comprador e Gestor']);
+      state.phase = 'profiles';
+    },
+
+    async *profiles(k, text) {
+      const reading = readProfiles(text);
+      state.answers.profiles = reading;
+      const a = state.answers;
+      yield* k.think(800);
+      yield* k.brief((b) => recordAnswer(b, QUESTIONS.profiles, text, reading));
+      yield* k.tool('Revisando o brief em busca de lacunas', 'nenhuma dúvida bloqueante', 1100);
+      yield* k.tool('Conferindo o impacto em cada sistema', 'Bridge, Stock.Api e Stock.Web', 900);
+      yield* k.brief((b) => {
+        b.objective = 'Mostrar no Stock.Web a data prevista de entrega de cada pedido, vinda do ERP, para que quem acompanha o estoque saiba quando a mercadoria chega e consiga se planejar.';
+      });
+      yield* k.status('ready');
+      yield* k.say([
+        'Acho que tenho o que preciso. Resumindo o que entendi:',
+        [
+          '**O que muda:** a tela de estoque passa a mostrar a data prevista de entrega de cada pedido.',
+          `**Onde:** ${a.location.label}.`,
+          `**Sem data prevista:** ${a.noDate.label}.`,
+          `**Se a data mudar:** ${a.change.label}.`,
+          `**Quem vê:** ${a.profiles.label}.`,
+        ].join('\n'),
+        'A mudança envolve o Bridge, a Stock.Api e o Stock.Web, e não restam dúvidas bloqueantes. **Posso enviar o brief para planejamento?**',
+      ].join('\n\n'));
+      yield* k.suggest(CONFIRM_OPTIONS);
+      state.phase = 'ready';
+    },
+
+    async *ready(k, text) {
+      if (isConfirmation(text)) { yield* submit(k); return; }
+      if (text.length < 40) {
+        yield* k.think(600);
+        yield* k.status('clarifying');
+        yield* k.say('Claro. O que você quer ajustar? Descreva a mudança com as suas palavras e eu atualizo o brief.');
+        state.phase = 'adjust';
+        return;
+      }
+      yield* applyAdjustment(k, text);
+    },
+
+    async *adjust(k, text) {
+      yield* applyAdjustment(k, text);
+    },
+
+    async *submitted(k) {
+      yield* k.think(500);
+      yield* k.say(`Esta demanda já foi enviada para planejamento com o protocolo **${state.brief.protocol}**. Para registrar outra necessidade, comece uma nova demanda.`);
+    },
+  };
+
+  async function* applyAdjustment(k, text) {
+    yield* k.think(800);
+    yield* k.brief((b) => {
+      b.clarifications.push({ id: `cl-adjust-${b.clarifications.length + 1}`, question: 'Ajuste pedido antes do envio', answer: shorten(text, 280) });
+      b.rules.push({ id: `RN${pad(b.rules.length + 1)}`, text: `Ajuste do solicitante: ${quote(text, 160)}.` });
+    });
+    yield* k.tool('Revisando o brief com o ajuste', 'nenhuma dúvida bloqueante', 900);
+    yield* k.status('ready');
+    yield* k.say('Atualizei o brief e registrei o ajuste como regra de negócio. **Posso enviar para planejamento?**');
+    yield* k.suggest(CONFIRM_OPTIONS);
+    state.phase = 'ready';
+  }
+
+  async function* submit(k) {
+    const protocol = `DEM-${Math.floor(1000 + Math.random() * 9000)}`;
+    yield* k.think(600);
+    yield* k.tool('Gerando a versão final do brief', `v${state.brief.version + 1} · ${state.brief.rules.length} regras · ${state.brief.acceptance.length} critérios`, 900);
+    yield* k.tool('Enviando para a fila de planejamento', `protocolo ${protocol}`, 1100);
+    yield* k.brief((b) => {
+      b.status = 'submitted';
+      b.protocol = protocol;
+      b.submittedAt = new Date().toISOString();
+    });
+    yield* k.status('submitted');
+    yield* k.say(`Pronto. O brief foi enviado para planejamento com o protocolo **${protocol}**.\n\nO agente de planejamento vai decompor a demanda em tarefas para cada sistema envolvido. **Você será notificado quando o plano estiver pronto.**`);
+    state.phase = 'submitted';
+  }
+
+  return {
+    async *start({ signal } = {}) {
+      state = initialState();
+      const k = kit(signal);
+      yield* k.think(600);
+      yield* k.status('understanding');
+      yield* k.say('Olá! Eu faço o intake das demandas de produto. Conte, com as suas palavras, o que você precisa: pode ser um problema, uma ideia ou uma mudança numa tela ou processo.\n\nVou fazer algumas perguntas de negócio, uma de cada vez, e montar o brief da demanda enquanto conversamos. Quando não houver mais dúvidas, envio para o planejamento.');
+      yield* k.suggest(['Quero que a tela de estoque mostre a data prevista de entrega do pedido']);
+      yield { type: 'done' };
+    },
+    async *sendMessage(text, { signal } = {}) {
+      const k = kit(signal);
+      const handler = phases[state.phase] || phases.submitted;
+      yield* handler(k, String(text || '').trim());
+      yield { type: 'done' };
+    },
+  };
+}
+
+/**
+ * Adaptador para a API real, com o mesmo contrato. Cada chamada é um POST que
+ * responde text/event-stream; cada evento SSE traz um IntakeEvent em JSON no
+ * campo data. O primeiro evento da sessão informa o id: { type: "session", sessionId }.
+ * Os caminhos abaixo são uma proposta; ajuste ao backend quando ele existir.
+ */
+function createSseIntakeService({ baseUrl, headers = {} }) {
+  const root = String(baseUrl).replace(/\/$/, '');
+  let sessionId = null;
+
+  async function* stream(path, body, signal) {
+    const response = await fetch(root + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...headers },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (!response.ok || !response.body) throw new Error(`O serviço de intake respondeu ${response.status}.`);
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value.replace(/\r\n?/g, '\n');
+        let cut;
+        while ((cut = buffer.indexOf('\n\n')) !== -1) {
+          const block = buffer.slice(0, cut);
+          buffer = buffer.slice(cut + 2);
+          const data = block.split('\n')
+            .filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).replace(/^ /, ''))
+            .join('\n');
+          if (!data) continue;
+          const event = JSON.parse(data);
+          if (event.type === 'session') { sessionId = event.sessionId; continue; }
+          yield event;
+        }
+      }
+    } finally {
+      reader.cancel().catch(() => {});
+    }
+  }
+
+  return {
+    start({ signal } = {}) {
+      sessionId = null;
+      return stream('/intake/sessions', {}, signal);
+    },
+    sendMessage(text, { signal } = {}) {
+      return stream(`/intake/sessions/${encodeURIComponent(sessionId)}/messages`, { text }, signal);
+    },
+  };
+}
+</script>
+
+<!-- =====================================================================
+     UI: consome os eventos do serviço. Não conhece o roteiro.
+     ===================================================================== -->
+<script>
+'use strict';
+(function () {
+  const service = window.INTAKE_API_URL
+    ? createSseIntakeService({ baseUrl: window.INTAKE_API_URL })
+    : createSimulatedIntakeService({ speed: window.INTAKE_SIM_SPEED });
+
+  const $ = (selector) => document.querySelector(selector);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const drawerMode = matchMedia('(max-width: 899.98px)');
+  const coarsePointer = matchMedia('(pointer: coarse)');
+  const systemDark = matchMedia('(prefers-color-scheme: dark)');
+
+  const els = {
+    topbar: $('#topbar'),
+    chat: $('#chat'),
+    transcript: $('#transcript'),
+    log: $('#log'),
+    jump: $('#jump'),
+    composer: $('#composer'),
+    input: $('#input'),
+    send: $('#send'),
+    hintStatus: $('#hint-status'),
+    doneCard: $('#done-card'),
+    doneProtocol: $('#done-protocol'),
+    doneView: $('#done-view'),
+    doneNew: $('#done-new'),
+    steps: $('#steps'),
+    progressCount: $('#progress-count'),
+    briefToggle: $('#brief-toggle'),
+    badge: $('#brief-count'),
+    themeToggle: $('#theme-toggle'),
+    restart: $('#restart'),
+    scrim: $('#scrim'),
+    brief: $('#brief'),
+    briefClose: $('#brief-close'),
+    sheet: $('#brief-sheet'),
+    stamp: $('#stamp'),
+    stampMeta: $('#stamp-meta'),
+    pill: $('#brief-pill'),
+    title: $('#brief-title'),
+    version: $('#brief-version'),
+    updated: $('#brief-updated'),
+    origin: $('#origin'),
+    originText: $('#origin-text'),
+    objective: $('#objective'),
+    objectiveEmpty: $('#objective-empty'),
+    openEmpty: $('#open-empty'),
+    openDone: $('#open-done'),
+    foot: $('#brief-foot'),
+    announcer: $('#announcer'),
+  };
+  const section = (name) => ({ list: $(`#${name}`), empty: $(`#${name}-empty`), count: $(`#${name}-count`) });
+  const sections = {
+    rules: section('rules'),
+    acceptance: section('acceptance'),
+    systems: section('systems'),
+    open: section('open'),
+    clar: section('clar'),
+  };
+
+  const STATUS = [
+    { value: 'understanding', label: 'Entendendo a demanda', pill: ['draft', 'Rascunho'], placeholder: 'Descreva o que você precisa…' },
+    { value: 'clarifying', label: 'Esclarecendo detalhes', pill: ['draft', 'Rascunho'], placeholder: 'Responda com suas palavras…' },
+    { value: 'ready', label: 'Pronto para planejamento', pill: ['ready', 'Pronto'], placeholder: 'Confirme ou peça um ajuste…' },
+    { value: 'submitted', label: 'Enviado para planejamento', pill: ['submitted', 'Enviado'], placeholder: '' },
+  ];
+  const ICON_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_CHEVRON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+  const app = {
+    session: 0,
+    controller: null,
+    busy: false,
+    status: 'understanding',
+    brief: null,
+    suggestTurn: null,
+    stick: true,
+    jumping: false,
+    pendingFresh: new Set(),
+    pendingStamp: false,
+    uid: 0,
+  };
+
+  // ---- Utilidades -----------------------------------------------------------
+
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const [key, value] of Object.entries(attrs)) {
+        if (value == null || value === false) continue;
+        if (key === 'class') el.className = value;
+        else if (key === 'text') el.textContent = value;
+        else if (key === 'html') el.innerHTML = value;
+        else if (key.startsWith('on')) el.addEventListener(key.slice(2), value);
+        else el.setAttribute(key, value === true ? '' : value);
+      }
+    }
+    for (const child of children.flat()) if (child != null && child !== false) el.append(child);
+    return el;
+  }
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function formatInline(s) {
+    return escapeHtml(s)
+      .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*\*([^*]*)$/, '<strong>$1</strong>') // negrito ainda chegando no streaming
+      .replace(/\*\*/g, '');
+  }
+  function formatMessage(raw) {
+    return raw.split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p>${formatInline(p).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+  const plain = (raw) => raw.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const fmtTime = (d) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const fmtDate = (d) => d.toLocaleDateString('pt-BR');
+  const fmtStampDate = (d) => `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+  function afterAnimation(node, name, fn, fallback) {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      node.removeEventListener('animationend', onEnd);
+      fn();
+    };
+    const onEnd = (e) => { if (e.target === node && (!name || e.animationName === name)) finish(); };
+    node.addEventListener('animationend', onEnd);
+    setTimeout(finish, fallback);
+  }
+
+  function announce(text) {
+    const p = h('p', { text });
+    els.announcer.append(p);
+    setTimeout(() => p.remove(), 10000);
+  }
+
+  // ---- Rolagem da conversa ---------------------------------------------------
+
+  function scrollToBottom() {
+    els.transcript.scrollTop = els.transcript.scrollHeight;
+  }
+  els.transcript.addEventListener('scroll', () => {
+    if (app.jumping) return;
+    const gap = els.transcript.scrollHeight - els.transcript.scrollTop - els.transcript.clientHeight;
+    app.stick = gap < 80;
+    if (app.stick) els.jump.hidden = true;
+  }, { passive: true });
+  const follow = new ResizeObserver(() => {
+    if (app.stick) scrollToBottom();
+    else if (app.busy) els.jump.hidden = false;
+  });
+  follow.observe(els.log);
+  follow.observe(els.transcript);
+  els.jump.addEventListener('click', () => {
+    app.stick = true;
+    app.jumping = true;
+    els.jump.hidden = true;
+    els.transcript.scrollTo({ top: els.transcript.scrollHeight, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    setTimeout(() => { app.jumping = false; scrollToBottom(); }, reduceMotion.matches ? 0 : 600);
+  });
+
+  // ---- Turnos da conversa ----------------------------------------------------
+
+  function turnMeta(who) {
+    return h('header', { class: 'turn-meta' }, h('span', { class: 'who', text: who }), h('time', { text: fmtTime(new Date()) }));
+  }
+
+  function addSessionMark() {
+    const now = new Date();
+    els.log.append(h('div', { class: 'session-mark' }, h('span', { text: `Nova sessão de intake · ${fmtDate(now)}, ${fmtTime(now)}` })));
+  }
+
+  function addUserTurn(text) {
+    els.log.append(h('article', { class: 'turn turn--user', 'aria-label': 'Sua mensagem' },
+      turnMeta('Você'),
+      h('div', { class: 'turn-body' }, h('p', { class: 'bubble', text }))));
+  }
+
+  function createAssistantTurn() {
+    const body = h('div', { class: 'turn-body' });
+    const el = h('article', { class: 'turn turn--ai', 'aria-label': 'Mensagem da IA de intake' }, turnMeta('Intake'), body);
+    els.log.append(el);
+
+    const activities = new Map();
+    let thinkingEl = null;
+    let acts = null;
+    let textEl = null;
+    let suggestEl = null;
+    let raw = '';
+    let frame = 0;
+    let finished = false;
+
+    function hideThinking() {
+      if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+    }
+
+    function ensureActs() {
+      if (acts) return acts;
+      const id = `acts-${++app.uid}`;
+      const list = h('ol', { class: 'acts-list' });
+      const label = h('span', { class: 'acts-label', text: 'Trabalhando' });
+      const toggle = h('button', { type: 'button', class: 'acts-toggle', 'aria-expanded': 'true', 'aria-controls': id },
+        h('span', { class: 'acts-icon', 'aria-hidden': 'true', html: ICON_CHECK }),
+        label,
+        h('span', { class: 'acts-chevron', html: ICON_CHEVRON }));
+      const panel = h('div', { class: 'acts-panel', id }, list);
+      const root = h('div', { class: 'acts', 'data-state': 'running', 'data-collapsed': 'false' }, toggle, panel);
+      const setCollapsed = (collapsed) => {
+        root.dataset.collapsed = String(collapsed);
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        panel.setAttribute('aria-hidden', String(collapsed));
+      };
+      toggle.addEventListener('click', () => setCollapsed(root.dataset.collapsed !== 'true'));
+      body.prepend(root);
+      acts = { root, list, label, setCollapsed };
+      return acts;
+    }
+
+    function markDone(item, result) {
+      item.li.dataset.state = 'done';
+      if (result) item.result.textContent = result;
+    }
+
+    function settleActs({ collapse }) {
+      if (!acts) return;
+      for (const item of activities.values()) if (item.li.dataset.state !== 'done') markDone(item);
+      const n = activities.size;
+      acts.root.dataset.state = 'done';
+      acts.label.textContent = n === 1 ? '1 atividade concluída' : `${n} atividades concluídas`;
+      if (collapse) acts.setCollapsed(true);
+    }
+
+    const turn = {
+      thinking() {
+        if (textEl || thinkingEl) return;
+        thinkingEl = h('div', { class: 'thinking', role: 'status' },
+          h('span', { class: 'thinking-dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
+          h('span', { text: 'Pensando' }));
+        body.append(thinkingEl);
+      },
+
+      activity(ev) {
+        hideThinking();
+        const a = ensureActs();
+        const key = ev.id || `anon-${activities.size}`;
+        let item = activities.get(key);
+        if (!item) {
+          // Sem id, cada atividade nova encerra as anteriores.
+          if (!ev.id) for (const other of activities.values()) markDone(other);
+          const label = h('span', { class: 'act-label', text: ev.label || 'Trabalhando' });
+          const result = h('span', { class: 'act-result' });
+          const li = h('li', { class: 'act', 'data-state': 'running' },
+            h('span', { class: 'act-dot', 'aria-hidden': 'true' }),
+            h('span', { class: 'act-text' }, label, result));
+          a.list.append(li);
+          item = { li, label, result };
+          activities.set(key, item);
+        } else if (ev.label) {
+          item.label.textContent = ev.label;
+        }
+        if (ev.state === 'done') markDone(item, ev.result);
+        a.root.dataset.state = 'running';
+        a.label.textContent = 'Trabalhando';
+      },
+
+      text(delta) {
+        hideThinking();
+        if (!textEl) {
+          settleActs({ collapse: true });
+          textEl = h('div', { class: 'msg-text is-streaming' });
+          body.insertBefore(textEl, suggestEl);
+        }
+        raw += delta;
+        if (!frame) {
+          frame = requestAnimationFrame(() => {
+            frame = 0;
+            textEl.innerHTML = formatMessage(raw);
+          });
+        }
+      },
+
+      suggestions(options) {
+        turn.clearSuggestions();
+        if (!options || !options.length) return;
+        suggestEl = h('div', { class: 'suggest', role: 'group', 'aria-label': 'Respostas sugeridas' },
+          options.map((option, i) => h('button', {
+            type: 'button',
+            class: 'chip-btn',
+            style: `--i:${i}`,
+            text: option,
+            onclick: () => send(option, { viaChip: true }),
+          })));
+        body.append(suggestEl);
+        app.suggestTurn = turn;
+      },
+
+      clearSuggestions() {
+        if (suggestEl) { suggestEl.remove(); suggestEl = null; }
+      },
+
+      error(message) {
+        hideThinking();
+        body.append(h('p', { class: 'msg-error', role: 'alert', text: message || 'Não consegui falar com o serviço de intake. Tente enviar de novo.' }));
+      },
+
+      finish() {
+        if (finished) return '';
+        finished = true;
+        hideThinking();
+        if (frame) { cancelAnimationFrame(frame); frame = 0; }
+        if (textEl) {
+          textEl.innerHTML = formatMessage(raw);
+          textEl.classList.remove('is-streaming');
+        }
+        settleActs({ collapse: !!textEl });
+        if (!body.childElementCount) el.remove();
+        return plain(raw);
+      },
+    };
+    return turn;
+  }
+
+  // ---- Consumo dos eventos ---------------------------------------------------
+
+  async function run(stream) {
+    const session = app.session;
+    const turn = createAssistantTurn();
+    const ctx = { fresh: 0, suggestions: [] };
+    setBusy(true);
+    try {
+      for await (const ev of stream) {
+        if (session !== app.session) return;
+        switch (ev.type) {
+          case 'thinking': turn.thinking(); break;
+          case 'tool_activity': turn.activity(ev); break;
+          case 'text_delta': turn.text(ev.text || ''); break;
+          case 'brief_updated': ctx.fresh += renderBrief(ev.brief); break;
+          case 'suggestions': ctx.suggestions = ev.options || []; turn.suggestions(ctx.suggestions); break;
+          case 'status': setStatus(ev.value); break;
+          case 'error': turn.error(ev.message); break;
+          default: break; // "done" e eventos desconhecidos
+        }
+      }
+    } catch (err) {
+      if (session !== app.session || (err && err.name === 'AbortError')) return;
+      console.error(err);
+      turn.error();
+    } finally {
+      if (session === app.session) {
+        const said = turn.finish();
+        setBusy(false);
+        const parts = [];
+        if (said) parts.push(`Intake: ${said}`);
+        if (ctx.fresh) parts.push(`Brief atualizado com ${ctx.fresh} ${ctx.fresh === 1 ? 'registro novo' : 'registros novos'}.`);
+        if (ctx.suggestions.length) parts.push(`Respostas sugeridas: ${ctx.suggestions.join('; ')}.`);
+        if (parts.length) announce(parts.join(' '));
+        if (app.status === 'submitted') showDoneCard();
+      }
+    }
+  }
+
+  function send(text, { viaChip = false } = {}) {
+    const value = String(text).trim();
+    if (!value || app.status === 'submitted') return;
+    if (app.busy) {
+      els.hintStatus.textContent = 'Aguarde a resposta terminar para enviar.';
+      return;
+    }
+    if (app.suggestTurn) { app.suggestTurn.clearSuggestions(); app.suggestTurn = null; }
+    addUserTurn(value);
+    if (!viaChip) {
+      els.input.value = '';
+      autosize();
+    }
+    app.stick = true;
+    els.jump.hidden = true;
+    scrollToBottom();
+    app.controller = new AbortController();
+    run(service.sendMessage(value, { signal: app.controller.signal }));
+    if (!(viaChip && coarsePointer.matches)) els.input.focus({ preventScroll: true });
+  }
+
+  function setBusy(busy) {
+    app.busy = busy;
+    els.composer.dataset.busy = String(busy);
+    els.hintStatus.textContent = busy ? 'A IA está respondendo…' : '';
+    updateSend();
+  }
+
+  function updateSend() {
+    els.send.disabled = app.busy || !els.input.value.trim();
+  }
+
+  function autosize() {
+    els.input.style.height = 'auto';
+    els.input.style.height = `${els.input.scrollHeight}px`;
+  }
+
+  // ---- Estado da sessão -------------------------------------------------------
+
+  function setStatus(value, { silent = false } = {}) {
+    const index = STATUS.findIndex((s) => s.value === value);
+    if (index < 0) return;
+    const changed = app.status !== value;
+    app.status = value;
+    const complete = value === 'submitted';
+    els.steps.querySelectorAll('.step').forEach((li, i) => {
+      const state = complete || i < index ? 'done' : i === index ? 'current' : 'todo';
+      li.dataset.state = state;
+      li.querySelector('.step-sr').textContent = state === 'done' ? ' (concluído)' : '';
+      if (i === index) li.setAttribute('aria-current', 'step');
+      else li.removeAttribute('aria-current');
+    });
+    els.steps.dataset.complete = String(complete);
+    els.progressCount.textContent = `${index + 1}/${STATUS.length}`;
+    const [tone, text] = STATUS[index].pill;
+    els.pill.dataset.tone = tone;
+    els.pill.textContent = text;
+    els.input.placeholder = STATUS[index].placeholder;
+    if (changed && !silent) announce(`Estado da sessão: ${STATUS[index].label}.`);
+  }
+
+  function showDoneCard() {
+    els.doneProtocol.textContent = (app.brief && app.brief.protocol) || '';
+    els.composer.hidden = true;
+    els.doneCard.hidden = false;
+    els.doneCard.focus({ preventScroll: true });
+    if (drawerMode.matches) els.briefToggle.classList.add('is-attention');
+  }
+
+  // ---- Brief -------------------------------------------------------------------
+
+  function isBriefVisible() {
+    return !drawerMode.matches || els.brief.classList.contains('is-open');
+  }
+
+  function markFresh(node) {
+    if (!isBriefVisible()) { app.pendingFresh.add(node); return; }
+    node.classList.remove('is-fresh');
+    void node.offsetWidth; // reinicia a animação
+    node.classList.add('is-fresh');
+    clearTimeout(node._freshTimer);
+    node._freshTimer = setTimeout(() => node.classList.remove('is-fresh'), 3200);
+  }
+
+  function enter(node, name) {
+    node.classList.add('is-entering');
+    afterAnimation(node, name, () => node.classList.remove('is-entering'), 900);
+    markFresh(node);
+  }
+
+  function leave(node, mode) {
+    node.dataset.leaving = 'true';
+    const go = () => {
+      node.classList.add('is-leaving');
+      afterAnimation(node, null, () => node.remove(), 600);
+    };
+    if (mode === 'resolve') {
+      node.classList.add('is-resolved');
+      setTimeout(go, reduceMotion.matches ? 300 : 750);
+    } else {
+      go();
+    }
+  }
+
+  /** Sincroniza uma lista com o snapshot, por id, animando entradas e saídas. */
+  function reconcile(list, items, render, { exit = 'collapse', enterName = 'item-in' } = {}) {
+    const current = new Map();
+    for (const node of list.children) if (!node.dataset.leaving) current.set(node.dataset.key, node);
+    const ids = new Set(items.map((item) => item.id));
+    for (const [key, node] of current) {
+      if (!ids.has(key)) { leave(node, exit); current.delete(key); }
+    }
+    const touched = [];
+    let prev = null;
+    for (const item of items) {
+      const sig = JSON.stringify(item);
+      let node = current.get(item.id);
+      let isNew = false;
+      if (!node) {
+        node = render(item);
+        isNew = true;
+      } else if (node.dataset.sig !== sig) {
+        const next = render(item);
+        node.replaceWith(next);
+        node = next;
+        touched.push(node);
+        markFresh(node);
+      }
+      node.dataset.key = item.id;
+      node.dataset.sig = sig;
+      let ref = prev ? prev.nextSibling : list.firstChild;
+      while (ref && ref !== node && ref.dataset.leaving) ref = ref.nextSibling;
+      if (ref !== node) list.insertBefore(node, ref);
+      if (isNew) { enter(node, enterName); touched.push(node); }
+      prev = node;
+    }
+    return touched;
+  }
+
+  function itemShell(content) {
+    return h('li', { class: 'item' }, h('div', { class: 'item-clip' }, content));
+  }
+  function renderNumbered(item) {
+    return itemShell(h('div', { class: 'item-content hl' },
+      h('span', { class: 'item-id', text: item.id }),
+      h('span', { class: 'item-text', html: formatInline(item.text) })));
+  }
+  function renderQuestion(item) {
+    return itemShell(h('div', { class: 'item-content hl' },
+      h('span', { class: 'q-mark', 'aria-hidden': 'true' }, h('span', { class: 'q-q', text: '?' }), h('span', { class: 'q-ok', html: ICON_CHECK })),
+      h('span', { class: 'item-text', html: formatInline(item.text) })));
+  }
+  function renderClarification(item) {
+    return itemShell(h('div', { class: 'item-content clar hl' },
+      h('span', { class: 'clar-q', text: item.question }),
+      h('span', { class: 'clar-a', text: `“${item.answer}”` })));
+  }
+  function renderSystem(item) {
+    return h('li', { class: 'sys' },
+      h('span', { class: 'chip' },
+        h('span', { class: 'chip-name', text: item.name }),
+        h('span', { class: 'chip-role', text: item.role || '' }),
+        h('span', { class: 'visually-hidden sys-sr' })),
+      h('span', { class: 'sys-link', 'aria-hidden': 'true', text: '→', hidden: true }));
+  }
+  function linkSystems(items) {
+    const nodes = new Map();
+    for (const node of sections.systems.list.children) if (!node.dataset.leaving) nodes.set(node.dataset.key, node);
+    items.forEach((item, i) => {
+      const node = nodes.get(item.id);
+      if (!node) return;
+      const target = items.find((other) => other.id === item.consumes);
+      node.querySelector('.sys-link').hidden = !(items[i + 1] && items[i + 1].id === item.consumes);
+      node.querySelector('.sys-sr').textContent = target ? `, consome ${target.name}` : '';
+    });
+  }
+
+  function setCount(sec, n) {
+    sec.empty.hidden = n > 0;
+    sec.count.textContent = n ? String(n) : '';
+  }
+
+  function countItems(b) {
+    if (!b) return 0;
+    return (b.objective ? 1 : 0) + b.rules.length + b.acceptance.length + b.systems.length + b.openQuestions.length + b.clarifications.length;
+  }
+
+  /** Aplica um snapshot do brief e devolve quantos registros são novos ou mudaram. */
+  function renderBrief(b) {
+    const prev = app.brief || {};
+    app.brief = b;
+    const touched = [];
+
+    if (b.title !== prev.title) {
+      els.title.textContent = b.title || 'Demanda sem título';
+      els.title.classList.toggle('is-empty', !b.title);
+      if (b.title) { markFresh(els.title); touched.push(els.title); }
+    }
+    if (b.origin !== prev.origin) {
+      els.origin.hidden = !b.origin;
+      els.originText.textContent = b.origin ? `“${b.origin}”` : '';
+      if (b.origin) { enter(els.origin, 'fade-in'); touched.push(els.origin); }
+    }
+    if (b.objective !== prev.objective) {
+      els.objective.textContent = b.objective || '';
+      els.objective.hidden = !b.objective;
+      els.objectiveEmpty.hidden = !!b.objective;
+      if (b.objective) {
+        if (prev.objective) markFresh(els.objective);
+        else enter(els.objective, 'fade-in');
+        touched.push(els.objective);
+      }
+    }
+
+    touched.push(...reconcile(sections.rules.list, b.rules, renderNumbered));
+    touched.push(...reconcile(sections.acceptance.list, b.acceptance, renderNumbered));
+    touched.push(...reconcile(sections.systems.list, b.systems, renderSystem, { enterName: 'chip-in' }));
+    linkSystems(b.systems);
+    touched.push(...reconcile(sections.open.list, b.openQuestions, renderQuestion, { exit: 'resolve' }));
+    touched.push(...reconcile(sections.clar.list, b.clarifications, renderClarification));
+
+    setCount(sections.rules, b.rules.length);
+    setCount(sections.acceptance, b.acceptance.length);
+    setCount(sections.systems, b.systems.length);
+    setCount(sections.open, b.openQuestions.length);
+    setCount(sections.clar, b.clarifications.length);
+    const noOpen = b.openQuestions.length === 0;
+    els.openEmpty.hidden = !noOpen || b.clarifications.length > 0;
+    els.openDone.hidden = !(noOpen && b.clarifications.length > 0);
+
+    const submitted = b.status === 'submitted';
+    const at = new Date((submitted ? b.submittedAt : b.updatedAt) || Date.now());
+    els.version.textContent = `${submitted ? 'Versão final' : 'Rascunho'} · v${b.version}`;
+    els.updated.textContent = submitted ? `${b.protocol} · enviado às ${fmtTime(at)}` : `Atualizado às ${fmtTime(at)}`;
+    if (submitted && prev.status !== 'submitted') closeBrief(b, at);
+
+    const total = countItems(b);
+    els.badge.textContent = String(total);
+    els.briefToggle.setAttribute('aria-label', `Abrir brief da demanda (${total} ${total === 1 ? 'item' : 'itens'})`);
+    if (touched.length && !isBriefVisible()) {
+      els.badge.classList.remove('is-bump');
+      void els.badge.offsetWidth;
+      els.badge.classList.add('is-bump');
+    }
+    revealInBrief(touched);
+    return touched.length;
+  }
+
+  // Rola o painel até o que acabou de entrar, se nada novo estiver à vista.
+  function revealInBrief(nodes) {
+    if (!nodes.length || !isBriefVisible()) return;
+    setTimeout(() => {
+      const view = els.brief.getBoundingClientRect();
+      const live = nodes.filter((n) => n.isConnected);
+      if (!live.length) return;
+      const visible = live.some((n) => {
+        const r = n.getBoundingClientRect();
+        return r.bottom > view.top + 8 && r.top < view.bottom - 8;
+      });
+      if (!visible) live[0].scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    }, 140);
+  }
+
+  function closeBrief(b, at) {
+    els.stampMeta.textContent = `${fmtStampDate(at)} · ${b.protocol || ''}`;
+    els.stamp.hidden = false;
+    els.sheet.classList.add('is-closed');
+    els.foot.textContent = `Brief fechado em ${fmtDate(at)} às ${fmtTime(at)}. O planejamento parte desta versão (v${b.version}).`;
+    els.foot.hidden = false;
+    if (isBriefVisible()) playStamp();
+    else app.pendingStamp = true;
+  }
+
+  function playStamp() {
+    app.pendingStamp = false;
+    els.sheet.classList.remove('is-stamping');
+    void els.sheet.offsetWidth;
+    els.sheet.classList.add('is-stamping');
+    afterAnimation(els.sheet, 'sheet-press', () => els.sheet.classList.remove('is-stamping'), 1200);
+    els.brief.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  }
+
+  function resetBrief() {
+    app.brief = null;
+    app.pendingFresh.clear();
+    app.pendingStamp = false;
+    for (const sec of Object.values(sections)) {
+      sec.list.replaceChildren();
+      setCount(sec, 0);
+    }
+    els.title.textContent = 'Demanda sem título';
+    els.title.classList.add('is-empty');
+    els.title.classList.remove('is-fresh');
+    els.version.textContent = 'Rascunho · v0';
+    els.updated.textContent = 'Aguardando a descrição';
+    els.origin.hidden = true;
+    els.originText.textContent = '';
+    els.objective.hidden = true;
+    els.objective.textContent = '';
+    els.objectiveEmpty.hidden = false;
+    els.openEmpty.hidden = false;
+    els.openDone.hidden = true;
+    els.stamp.hidden = true;
+    els.sheet.classList.remove('is-closed', 'is-stamping');
+    els.foot.hidden = true;
+    els.badge.textContent = '0';
+    els.briefToggle.setAttribute('aria-label', 'Abrir brief da demanda (0 itens)');
+    els.briefToggle.classList.remove('is-attention');
+    els.brief.scrollTop = 0;
+  }
+
+  // ---- Gaveta do brief (telas estreitas) ----------------------------------------
+
+  function openDrawer() {
+    if (!drawerMode.matches) return;
+    els.brief.classList.add('is-open');
+    els.brief.setAttribute('role', 'dialog');
+    els.brief.setAttribute('aria-modal', 'true');
+    els.briefToggle.setAttribute('aria-expanded', 'true');
+    els.briefToggle.classList.remove('is-attention');
+    els.scrim.hidden = false;
+    requestAnimationFrame(() => els.scrim.classList.add('is-visible'));
+    els.topbar.inert = true;
+    els.chat.inert = true;
+    els.briefClose.focus({ preventScroll: true });
+    setTimeout(flushPending, reduceMotion.matches ? 0 : 280);
+  }
+
+  function closeDrawer({ restoreFocus = true } = {}) {
+    if (!els.brief.classList.contains('is-open')) return;
+    els.brief.classList.remove('is-open');
+    els.brief.removeAttribute('role');
+    els.brief.removeAttribute('aria-modal');
+    els.briefToggle.setAttribute('aria-expanded', 'false');
+    els.scrim.classList.remove('is-visible');
+    els.scrim.hidden = true;
+    els.topbar.inert = false;
+    els.chat.inert = false;
+    if (restoreFocus) els.briefToggle.focus({ preventScroll: true });
+  }
+
+  // Ao abrir a gaveta, mostra o que mudou enquanto ela estava fechada.
+  // Se o brief foi enviado nesse meio-tempo, o carimbo é o único destaque.
+  function flushPending() {
+    const nodes = [...app.pendingFresh].filter((n) => n.isConnected);
+    app.pendingFresh.clear();
+    if (app.pendingStamp) { playStamp(); return; }
+    nodes.forEach(markFresh);
+    revealInBrief(nodes);
+  }
+
+  drawerMode.addEventListener('change', () => {
+    if (!drawerMode.matches) {
+      closeDrawer({ restoreFocus: false });
+      flushPending();
+    }
+  });
+
+  // ---- Tema ------------------------------------------------------------------
+
+  function effectiveTheme() {
+    return document.documentElement.getAttribute('data-theme') || (systemDark.matches ? 'dark' : 'light');
+  }
+  function syncThemeButton() {
+    const current = effectiveTheme();
+    const label = current === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro';
+    els.themeToggle.dataset.effective = current;
+    els.themeToggle.setAttribute('aria-label', label);
+    els.themeToggle.title = label;
+  }
+  // Alterna o tema visível. Voltar ao tema do sistema volta a segui-lo.
+  els.themeToggle.addEventListener('click', () => {
+    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    const followSystem = next === (systemDark.matches ? 'dark' : 'light');
+    if (followSystem) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', next);
+    try {
+      if (followSystem) localStorage.removeItem('intake-theme');
+      else localStorage.setItem('intake-theme', next);
+    } catch (e) { /* preferência só vale nesta visita */ }
+    syncThemeButton();
+  });
+  systemDark.addEventListener('change', syncThemeButton);
+
+  // ---- Sessão --------------------------------------------------------------------
+
+  function startSession() {
+    app.session += 1;
+    if (app.controller) app.controller.abort();
+    app.controller = new AbortController();
+    app.suggestTurn = null;
+    closeDrawer({ restoreFocus: false });
+    els.log.replaceChildren();
+    resetBrief();
+    setStatus('understanding', { silent: true });
+    els.doneCard.hidden = true;
+    els.composer.hidden = false;
+    els.input.value = '';
+    autosize();
+    app.stick = true;
+    els.jump.hidden = true;
+    addSessionMark();
+    run(service.start({ signal: app.controller.signal }));
+  }
+
+  // ---- Eventos da página ------------------------------------------------------
+
+  els.composer.addEventListener('submit', (e) => {
+    e.preventDefault();
+    send(els.input.value);
+  });
+  els.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      send(els.input.value);
+    }
+  });
+  els.input.addEventListener('input', () => {
+    autosize();
+    updateSend();
+  });
+  els.restart.addEventListener('click', () => {
+    startSession();
+    els.input.focus({ preventScroll: true });
+  });
+  els.doneNew.addEventListener('click', () => {
+    startSession();
+    els.input.focus({ preventScroll: true });
+  });
+  els.briefToggle.addEventListener('click', openDrawer);
+  els.doneView.addEventListener('click', openDrawer);
+  els.briefClose.addEventListener('click', () => closeDrawer());
+  els.scrim.addEventListener('click', () => closeDrawer());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.brief.classList.contains('is-open')) {
+      e.preventDefault();
+      closeDrawer();
+    }
+  });
+
+  syncThemeButton();
+  startSession();
+  if (!coarsePointer.matches) els.input.focus({ preventScroll: true });
+})();
+</script>
+</body>
+</html>

@@ -30,10 +30,10 @@ As fontes vêm do Google Fonts. Sem internet, a página usa as fontes do sistema
    ```bash
    gcloud auth print-access-token
    ```
-2. Abra o `index.html` (direto ou via `npx serve .`), clique em **Colar token** no topo, cole o token e salve.
+2. Abra o `index.html` (direto ou via `npx serve .`), clique em **Configurar** no topo, informe o ID do projeto, cole o token e salve.
 3. Converse normalmente. O token vale cerca de 1 hora; quando expirar, a página avisa e reabre o diálogo com a mensagem preservada no campo.
 
-O token fica só no `sessionStorage` da aba (some ao fechá-la). Modo, projeto, região e modelo ficam no `localStorage`. O padrão é o projeto `madero-antigravity-dev-team`, região `global`, modelo `claude-sonnet-4-6`, editáveis em **Conexão → Projeto, região e modelo**.
+O ID do projeto do Google Cloud não fica no código: informe-o em **Conexão**, junto com o token. O token fica só no `sessionStorage` da aba (some ao fechá-la). Modo, projeto, região e modelo ficam no `localStorage` do navegador. Região (`global`) e modelo (`claude-sonnet-4-6`) têm padrão e podem ser trocados em **Conexão → Região e modelo**.
 
 > A versão publicada no claude.ai não consegue chamar o Vertex: aquela visualização bloqueia requisições externas. Para usar a IA real, abra o arquivo localmente.
 

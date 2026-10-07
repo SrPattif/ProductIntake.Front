@@ -1226,6 +1226,10 @@ kbd {
       <fieldset class="vertex-fields" id="vertex-fields">
         <legend class="visually-hidden">Vertex AI</legend>
         <div class="field">
+          <label class="field-label" for="set-project">ID do projeto no Google Cloud</label>
+          <input id="set-project" autocomplete="off" spellcheck="false" placeholder="meu-projeto-gcp">
+        </div>
+        <div class="field">
           <label class="field-label" for="set-token">Access token</label>
           <div class="token-row">
             <input id="set-token" type="password" autocomplete="off" spellcheck="false" placeholder="ya29.…">
@@ -1235,12 +1239,8 @@ kbd {
           <p class="hint" id="token-age" hidden></p>
         </div>
         <details class="advanced">
-          <summary>Projeto, região e modelo</summary>
+          <summary>Região e modelo</summary>
           <div class="advanced-body">
-            <div class="field">
-              <label class="field-label" for="set-project">Projeto</label>
-              <input id="set-project" autocomplete="off" spellcheck="false">
-            </div>
             <div class="field-row">
               <div class="field">
                 <label class="field-label" for="set-location">Região</label>
@@ -1706,7 +1706,8 @@ function createSimulatedIntakeService(options) {
    Só para protótipo e validação: o access token fica no navegador de quem
    usa a página. Em produção, essa chamada vai para um backend.
    ===================================================================== */
-const VERTEX_DEFAULTS = { project: 'madero-antigravity-dev-team', location: 'global', model: 'claude-sonnet-4-6' };
+// O projeto não fica no código: quem usa informa em Conexão, junto com o token.
+const VERTEX_DEFAULTS = { project: '', location: 'global', model: 'claude-sonnet-4-6' };
 const VERTEX_MAX_TOKENS = 4096;
 const VERTEX_MAX_STEPS = 6; // chamadas ao modelo por mensagem do usuário
 
@@ -2209,8 +2210,8 @@ function createVertexIntakeService({ getSettings }) {
     async *sendMessage(text, { signal } = {}) {
       const s = session;
       const settings = { ...getSettings() };
-      if (!settings.token) {
-        yield { type: 'error', code: 'auth', message: 'Cole um access token do Google Cloud em Conexão para conversar com a IA.' };
+      if (!settings.token || !settings.project) {
+        yield { type: 'error', code: 'auth', message: 'Informe o projeto e cole um access token do Google Cloud em Conexão para conversar com a IA.' };
         yield { type: 'done' };
         return;
       }
@@ -2772,9 +2773,10 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
       els.hintStatus.textContent = 'Aguarde a resposta terminar para enviar.';
       return;
     }
-    if (usesVertex() && !settings.token) {
+    if (usesVertex() && (!settings.token || !settings.project)) {
       if (viaChip && !els.input.value.trim()) { els.input.value = value; autosize(); updateSend(); }
-      openSettings({ notice: 'Cole um access token para conversar com a IA. Sua mensagem continua no campo de texto.' });
+      const missing = !settings.project && !settings.token ? 'Informe o projeto e cole um access token' : !settings.project ? 'Informe o projeto do Google Cloud' : 'Cole um access token';
+      openSettings({ notice: `${missing} para conversar com a IA. Sua mensagem continua no campo de texto.` });
       return;
     }
     if (app.suggestTurn) { app.suggestTurn.clearSuggestions(); app.suggestTurn = null; }
@@ -3220,10 +3222,12 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
       els.brandTag.textContent = 'Protótipo · API de intake';
       return;
     }
-    const state = settings.mode !== 'vertex' ? 'simulated' : settings.token ? 'ok' : 'missing';
+    const state = settings.mode !== 'vertex' ? 'simulated' : settings.token && settings.project ? 'ok' : 'missing';
     const [label, title] = {
-      ok: ['Vertex', `Conectado ao Vertex AI · ${settings.model}`],
-      missing: ['Colar token', 'Cole um access token para usar o Vertex AI'],
+      ok: ['Vertex', `Conectado ao Vertex AI · ${settings.project} · ${settings.model}`],
+      missing: settings.project
+        ? ['Colar token', 'Cole um access token para usar o Vertex AI']
+        : ['Configurar', 'Informe o projeto e o access token para usar o Vertex AI'],
       simulated: ['Simulação', 'Usando a IA simulada, sem chamadas externas'],
     }[state];
     els.conn.dataset.state = state;
@@ -3269,8 +3273,9 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     syncSettingsForm();
     els.settings.showModal();
     if (settings.mode === 'vertex') {
-      els.setToken.focus();
-      els.setToken.select();
+      const target = settings.project ? els.setToken : els.setProject;
+      target.focus();
+      target.select();
     }
   }
 
@@ -3278,11 +3283,11 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     e.preventDefault();
     const mode = selectedMode();
     const token = els.setToken.value.trim().replace(/^Bearer\s+/i, '').replace(/\s+/g, '');
-    const project = els.setProject.value.trim() || VERTEX_DEFAULTS.project;
+    const project = els.setProject.value.trim();
     const location = els.setLocation.value.trim() || VERTEX_DEFAULTS.location;
     const model = els.setModel.value.trim() || VERTEX_DEFAULTS.model;
     if (mode === 'vertex') {
-      if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project)) { showNotice('Confira o ID do projeto: letras minúsculas, números e hífens.'); return; }
+      if (project && !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project)) { showNotice('Confira o ID do projeto: letras minúsculas, números e hífens.'); return; }
       if (!/^[a-z0-9-]+$/.test(location)) { showNotice('Confira a região, por exemplo global ou us-east5.'); return; }
       if (!/^[a-z0-9][a-z0-9.@-]*$/i.test(model)) { showNotice('Confira o ID do modelo, por exemplo claude-sonnet-4-6.'); return; }
     }

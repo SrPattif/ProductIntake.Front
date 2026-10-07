@@ -1,8 +1,13 @@
 # Intake de Demandas: protótipo de front
 
-Protótipo navegável da experiência de intake de demandas de produto. O solicitante descreve o que precisa, uma IA (simulada) faz perguntas de negócio uma de cada vez e monta ao vivo o brief estruturado da demanda, até enviá-lo para planejamento.
+Protótipo navegável da experiência de intake de demandas de produto. O solicitante descreve o que precisa, uma IA faz perguntas de negócio uma de cada vez e monta ao vivo o brief estruturado da demanda, até enviá-lo para planejamento.
 
-Não há backend: a IA é uma simulação com roteiro fixo, isolada numa camada de serviço que pode ser trocada por uma API real com streaming (SSE).
+A IA tem dois modos, escolhidos no botão **Conexão** do topo:
+
+- **Vertex AI** (padrão): Claude de verdade no Vertex AI, com as tools `update_brief` e `submit_for_planning`. As chamadas saem direto do navegador; serve só para validar a ideia.
+- **Simulação**: roteiro fixo, sem chamadas externas. Útil para demonstrar sem token.
+
+Não há backend. Cada modo é uma implementação da mesma camada de serviço, que a UI consome por eventos.
 
 ## Como abrir
 
@@ -19,7 +24,45 @@ npx serve .
 
 As fontes vêm do Google Fonts. Sem internet, a página usa as fontes do sistema.
 
-## Roteiro de demonstração
+## IA real (Vertex AI)
+
+1. Gere um access token com a conta que tem acesso ao projeto:
+   ```bash
+   gcloud auth print-access-token
+   ```
+2. Abra o `index.html` (direto ou via `npx serve .`), clique em **Colar token** no topo, cole o token e salve.
+3. Converse normalmente. O token vale cerca de 1 hora; quando expirar, a página avisa e reabre o diálogo com a mensagem preservada no campo.
+
+O token fica só no `sessionStorage` da aba (some ao fechá-la). Modo, projeto, região e modelo ficam no `localStorage`. O padrão é o projeto `madero-antigravity-dev-team`, região `global`, modelo `claude-sonnet-4-6`, editáveis em **Conexão → Projeto, região e modelo**.
+
+> A versão publicada no claude.ai não consegue chamar o Vertex: aquela visualização bloqueia requisições externas. Para usar a IA real, abra o arquivo localmente.
+
+### Como a integração funciona
+
+A cada mensagem do usuário, `createVertexIntakeService` faz o loop de tools no próprio front:
+
+1. `POST …/publishers/anthropic/models/{modelo}:streamRawPredict` com `anthropic_version: "vertex-2023-10-16"`, `stream: true`, `max_tokens: 4096`, as tools e o `system` em três blocos: instruções do intake, perfis dos sistemas (com `cache_control`) e o brief atual em JSON.
+2. O texto chega em streaming (`content_block_delta`) e vira `text_delta` na UI. O início de cada `tool_use` aparece como atividade.
+3. Se a resposta para em `tool_use`, o front executa as tools e devolve todos os `tool_result` numa única mensagem:
+   - `update_brief` aplica as mudanças no brief (adiciona regras, critérios e perguntas sem duplicar, substitui sistemas, move perguntas respondidas para esclarecimentos, casando o texto exato ou muito parecido) e devolve o brief completo em JSON;
+   - `submit_for_planning` fecha o brief, gera um protocolo `DEM-xxxx` e devolve `{ status: "submitted", protocol }`.
+4. Repete até a resposta terminar (`end_turn`), com no máximo 6 chamadas por mensagem.
+
+O histórico (`messages`) fica em memória. Se uma chamada falhar, ele volta ao estado anterior à mensagem, para que o reenvio não duplique nada.
+
+Além das tools, o front deduz duas coisas do texto da IA:
+
+- **Estado da sessão**: "Esclarecendo detalhes" quando o brief ganha objetivo; "Pronto para planejamento" quando a última fala pergunta se pode enviar para planejamento; "Enviado" quando `submit_for_planning` roda.
+- **Respostas rápidas**: quando a IA termina a pergunta com uma lista de 2 a 6 opções, elas viram chips. Quando ela pede confirmação de envio, aparecem "Sim, pode enviar" e "Quero ajustar algo".
+
+Diferença em relação ao exemplo de requisição original: `update_brief` ganhou o campo opcional `title` (título curto da demanda), usado no topo do card do brief.
+
+### Depuração
+
+- Cada requisição e resposta do modelo aparece no console do navegador (`console.debug`, nível "Verbose"), com `stop_reason` e `usage` (inclusive `cache_read_input_tokens`).
+- `intakeDebug()` no console devolve o histórico enviado ao modelo e o brief atual no formato da tool.
+
+## Roteiro de demonstração (modo Simulação)
 
 1. Clique na sugestão inicial ("Quero que a tela de estoque mostre a data prevista de entrega do pedido") ou descreva a demanda com suas palavras.
 2. A IA consulta o mapa de sistemas (Stock.Web → Stock.Api → Bridge), registra objetivo e sistemas no brief e abre as perguntas em aberto.
@@ -40,8 +83,9 @@ O arquivo tem três blocos:
 | Bloco | Responsabilidade |
 | --- | --- |
 | `createSimulatedIntakeService` | Roteiro da IA simulada. Emite eventos com atrasos realistas e respeita `AbortSignal`. |
-| `createSseIntakeService` | Adaptador para a API real, com o mesmo contrato. Lê `text/event-stream` via `fetch`. |
-| UI (IIFE no fim do arquivo) | Consome eventos e renderiza conversa, atividades, brief e estado da sessão. Não conhece o roteiro. |
+| `createVertexIntakeService` | Claude no Vertex AI com tools. Faz o loop de `tool_use`, mantém histórico e brief e traduz o streaming para os eventos da UI. |
+| `createSseIntakeService` | Adaptador para uma futura API própria de intake, com o mesmo contrato. Lê `text/event-stream` via `fetch`. |
+| UI (IIFE no fim do arquivo) | Consome eventos e renderiza conversa, atividades, brief e estado da sessão. Não conhece o roteiro nem o modelo. |
 
 ### Contrato do serviço
 
@@ -75,6 +119,7 @@ interface Brief {
   protocol: string | null;
   submittedAt: string | null;         // ISO 8601
   updatedAt: string | null;
+  readiness?: string | null;          // justificativa do envio (modo Vertex)
 }
 ```
 
@@ -82,12 +127,14 @@ Notas do contrato:
 
 - `brief_updated` sempre manda o brief inteiro. A UI compara com o snapshot anterior por `id` para animar o que entrou, o que saiu (pergunta respondida) e o que mudou (destaque de marca-texto).
 - `tool_activity` com `id` permite marcar a mesma atividade como `running` e depois `done` com um `result`. Sem `id`, cada atividade nova encerra a anterior.
-- Textos aceitam `**negrito**`. O HTML é sempre escapado.
+- O HTML é sempre escapado.
 - Eventos de tipo desconhecido são ignorados, o que permite evoluir o backend sem quebrar a UI.
+- `error` pode trazer `code` (`auth`, `config`, `rate`, `network`…). Com `auth` ou `config`, a UI reabre o diálogo de conexão.
+- Textos aceitam o markdown simples que a IA costuma usar: parágrafos, listas, títulos, `**negrito**`, `*itálico*` e `` `código` ``.
 
-### Trocando pela API real
+### Trocando por uma API própria
 
-Defina a URL antes dos scripts do arquivo:
+Quando a chamada ao modelo sair do navegador e for para um backend, defina a URL antes dos scripts do arquivo:
 
 ```html
 <script>window.INTAKE_API_URL = 'https://intake.exemplo.interno';</script>
@@ -102,7 +149,7 @@ Cada evento SSE traz um `IntakeEvent` em JSON no campo `data:`.
 
 ### Ajuste de velocidade (desenvolvimento)
 
-`window.INTAKE_SIM_SPEED` multiplica os tempos da simulação (padrão `1`). Útil para testes automatizados, por exemplo `0.1`.
+`window.INTAKE_SIM_SPEED` multiplica os tempos da simulação (padrão `1`). Útil para testes automatizados, por exemplo `0.1`. `window.INTAKE_DEFAULT_MODE = 'simulated'` abre a página no modo Simulação quando não há preferência salva.
 
 ## Interface
 

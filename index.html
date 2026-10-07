@@ -35,6 +35,7 @@
   --accent-soft: #D5EAE3;
   --mark: #F8E59B;
   --danger: #A3392A;
+  --warn: #A86400;
   --shadow-sheet: 0 1px 2px rgb(20 32 28 / .05), 0 18px 40px -24px rgb(20 32 28 / .3);
   --shadow-float: 0 1px 2px rgb(20 32 28 / .06), 0 10px 24px -12px rgb(20 32 28 / .24);
   --scrim: rgb(13 20 18 / .42);
@@ -74,6 +75,7 @@
     --accent-soft: #15332D;
     --mark: rgb(236 200 84 / .3);
     --danger: #EC8A75;
+  --warn: #E2A33A;
     --shadow-sheet: 0 1px 2px rgb(0 0 0 / .4), 0 20px 44px -24px rgb(0 0 0 / .7);
     --shadow-float: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -14px rgb(0 0 0 / .65);
     --scrim: rgb(0 0 0 / .58);
@@ -95,6 +97,7 @@
   --accent-soft: #15332D;
   --mark: rgb(236 200 84 / .3);
   --danger: #EC8A75;
+  --warn: #E2A33A;
   --shadow-sheet: 0 1px 2px rgb(0 0 0 / .4), 0 20px 44px -24px rgb(0 0 0 / .7);
   --shadow-float: 0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -14px rgb(0 0 0 / .65);
   --scrim: rgb(0 0 0 / .58);
@@ -165,7 +168,7 @@ kbd {
 .bm-sheet { fill: var(--accent); }
 .bm-lines { fill: none; stroke: var(--accent-ink); stroke-width: 1.7; stroke-linecap: round; }
 .brand-text { display: flex; flex-direction: column; min-width: 0; }
-.brand-name { margin: 0; font: 600 .9375rem/1.2 var(--font-ui); letter-spacing: -.005em; white-space: nowrap; }
+.brand-name { margin: 0; font: 600 .9375rem/1.2 var(--font-ui); letter-spacing: -.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-tag {
   font: 500 10px/1.4 var(--font-mono);
   letter-spacing: .1em;
@@ -350,9 +353,19 @@ kbd {
   overflow-wrap: anywhere;
 }
 .msg-text p { margin: 0; }
-.msg-text p + p { margin-top: .7em; }
-.msg-text strong { font-weight: 600; }
-.msg-text.is-streaming p:last-child::after {
+.msg-text :is(p, ol, ul) + :is(p, ol, ul) { margin-top: .7em; }
+.msg-text ol, .msg-text ul { margin: 0; padding-left: 1.5em; }
+.msg-text li + li { margin-top: .3em; }
+.msg-text li::marker { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.msg-text strong, .msg-heading { font-weight: 600; }
+.msg-text code {
+  padding: .05em .35em;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font: 500 .88em var(--font-mono);
+}
+.msg-text.is-streaming > p:last-child::after,
+.msg-text.is-streaming > :is(ol, ul):last-child > li:last-child::after {
   content: "";
   display: inline-block;
   width: .45em;
@@ -806,6 +819,92 @@ kbd {
 
 .scrim { display: none; }
 
+/* ---------- Conexão com a IA ---------- */
+.conn-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.conn[data-state="ok"] .conn-dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.conn[data-state="missing"] { border-color: var(--warn); color: var(--ink); }
+.conn[data-state="missing"] .conn-dot { background: var(--warn); }
+.conn-key { display: none; }
+
+.settings {
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sheet);
+}
+.settings[open] { animation: turn-in .3s var(--ease) both; }
+.settings::backdrop { background: rgb(6 10 9 / .5); }
+.settings-form { display: flex; flex-direction: column; gap: 18px; padding: 22px 24px 20px; }
+.settings-title { margin: 0; font: 500 1.375rem/1.2 var(--font-doc); }
+.settings-sub { margin: 4px 0 0; font-size: .875rem; color: var(--ink-3); }
+.settings fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.field-label {
+  font: 600 .72rem/1.3 var(--font-ui);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.mode { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mode legend { padding: 0; margin-bottom: 8px; }
+.mode-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.mode-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.mode-opt input { margin: 3px 0 0; accent-color: var(--accent); }
+.mode-opt strong { display: block; font-size: .9375rem; font-weight: 600; }
+.mode-opt small { display: block; font-size: .78rem; line-height: 1.35; color: var(--ink-2); }
+.vertex-fields { display: flex; flex-direction: column; gap: 14px; transition: opacity .2s; }
+.vertex-fields:disabled { opacity: .45; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 .9375rem var(--font-ui);
+}
+.field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#set-token { font: 400 .8125rem var(--font-mono); }
+.token-row { display: flex; gap: 8px; }
+.token-row .btn { height: 40px; flex: none; }
+.hint { margin: 0; font-size: .8125rem; line-height: 1.45; color: var(--ink-3); }
+.hint code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 500 .78rem var(--font-mono);
+}
+.advanced summary { cursor: pointer; font-size: .875rem; font-weight: 500; color: var(--ink-2); }
+.advanced-body { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.settings-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+  font-size: .875rem;
+  line-height: 1.45;
+}
+.settings-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.foot-why { display: block; margin-top: 6px; color: var(--ink-3); }
+
 /* ---------- Animações ---------- */
 @keyframes turn-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes act-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
@@ -899,10 +998,18 @@ kbd {
     position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
   }
   .btn-restart { width: 36px; padding: 0; }
+  .conn-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .conn-key { display: block; }
   .brief-sheet { padding: 20px 18px 22px; }
+}
+@media (max-width: 429.98px) {
+  .brand-text { display: none; }
 }
 @media (max-width: 479.98px) {
   .brand-long, .brand-tag { display: none; }
+  .mode, .field-row { grid-template-columns: 1fr; }
 }
 @media (pointer: coarse) {
   .kbd-hint { display: none; }
@@ -931,7 +1038,7 @@ kbd {
       </svg>
       <div class="brand-text">
         <h1 class="brand-name">Intake<span class="brand-long"> de demandas</span></h1>
-        <span class="brand-tag">Protótipo · IA simulada</span>
+        <span class="brand-tag" id="brand-tag">Protótipo · IA simulada</span>
       </div>
     </div>
 
@@ -962,6 +1069,11 @@ kbd {
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.75h5.25l3 3v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.25 8h4M6.25 10.75h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <span>Brief</span>
         <span class="badge" id="brief-count">0</span>
+      </button>
+      <button type="button" class="btn conn" id="conn" data-state="missing" aria-haspopup="dialog" aria-controls="settings">
+        <svg class="conn-key" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7.7 8.3 13.5 2.5M11.4 4.6l1.6 1.6M9.9 6.1l1.2 1.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span class="conn-dot" aria-hidden="true"></span>
+        <span class="conn-label" id="conn-label">Colar token</span>
       </button>
       <button type="button" class="btn btn-icon theme-toggle" id="theme-toggle" aria-label="Ativar tema escuro" title="Ativar tema escuro">
         <svg class="ic-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -1092,6 +1204,67 @@ kbd {
     </aside>
   </main>
 
+  <dialog class="settings" id="settings" aria-labelledby="settings-title">
+    <form class="settings-form" id="settings-form" novalidate>
+      <header>
+        <h2 class="settings-title" id="settings-title">Conexão com a IA</h2>
+        <p class="settings-sub">Só para o protótipo: as chamadas saem direto deste navegador para o Vertex AI.</p>
+      </header>
+
+      <fieldset class="mode">
+        <legend class="field-label">Modo</legend>
+        <label class="mode-opt">
+          <input type="radio" name="mode" value="vertex">
+          <span><strong>Vertex AI</strong><small>Claude de verdade, com as tools do brief</small></span>
+        </label>
+        <label class="mode-opt">
+          <input type="radio" name="mode" value="simulated">
+          <span><strong>Simulação</strong><small>Roteiro fixo, sem chamadas externas</small></span>
+        </label>
+      </fieldset>
+
+      <fieldset class="vertex-fields" id="vertex-fields">
+        <legend class="visually-hidden">Vertex AI</legend>
+        <div class="field">
+          <label class="field-label" for="set-token">Access token</label>
+          <div class="token-row">
+            <input id="set-token" type="password" autocomplete="off" spellcheck="false" placeholder="ya29.…">
+            <button type="button" class="btn" id="set-token-show" aria-controls="set-token" aria-pressed="false">Mostrar</button>
+          </div>
+          <p class="hint">Gere com <code>gcloud auth print-access-token</code> e cole aqui. O token vale cerca de 1 hora e fica guardado só nesta aba.</p>
+          <p class="hint" id="token-age" hidden></p>
+        </div>
+        <details class="advanced">
+          <summary>Projeto, região e modelo</summary>
+          <div class="advanced-body">
+            <div class="field">
+              <label class="field-label" for="set-project">Projeto</label>
+              <input id="set-project" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label" for="set-location">Região</label>
+                <input id="set-location" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label class="field-label" for="set-model">Modelo</label>
+                <input id="set-model" autocomplete="off" spellcheck="false">
+              </div>
+            </div>
+          </div>
+        </details>
+      </fieldset>
+
+      <p class="settings-notice" id="settings-notice" role="alert" hidden></p>
+      <p class="hint" id="mode-note" hidden>Trocar o modo começa uma conversa nova.</p>
+
+      <div class="settings-actions">
+        <button type="button" class="btn" id="settings-cancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="visually-hidden" id="announcer" aria-live="polite" aria-relevant="additions"></div>
 </div>
 
@@ -1122,7 +1295,7 @@ kbd {
          systems: [{ id, name, role, consumes? }],
          openQuestions: [{ id, text }],
          clarifications: [{ id, question, answer }],
-         protocol, submittedAt, updatedAt }
+         protocol, submittedAt, updatedAt, readiness? }
      Textos aceitam **negrito**.
      ===================================================================== -->
 <script>
@@ -1528,11 +1701,582 @@ function createSimulatedIntakeService(options) {
   };
 }
 
+/* =====================================================================
+   VERTEX AI: Claude com tools, chamado direto do navegador.
+   Só para protótipo e validação: o access token fica no navegador de quem
+   usa a página. Em produção, essa chamada vai para um backend.
+   ===================================================================== */
+const VERTEX_DEFAULTS = { project: 'madero-antigravity-dev-team', location: 'global', model: 'claude-sonnet-4-6' };
+const VERTEX_MAX_TOKENS = 4096;
+const VERTEX_MAX_STEPS = 6; // chamadas ao modelo por mensagem do usuário
+
+const INTAKE_SYSTEM_PROMPT = `Você é o assistente de intake de demandas de produto da empresa. Seu papel é entender, em linguagem de negócio, o que o solicitante precisa e registrar isso no brief.
+
+Como conduzir:
+- Faça UMA pergunta por mensagem, curta e objetiva. Quando fizer sentido, ofereça de 2 a 4 opções de resposta.
+- Pergunte apenas sobre comportamento funcional e regras de negócio: o que o usuário vê, onde, quando, para quem e o que acontece nos casos de exceção.
+- NÃO pergunte detalhes técnicos (classes, tabelas, endpoints, bibliotecas, onde implementar). Isso será descoberto depois por outro agente explorando o código.
+- Use os perfis funcionais dos sistemas para fazer perguntas específicas, citando telas, perfis de usuário e regras existentes, em vez de perguntas genéricas.
+- Não invente funcionalidades que não constam nos perfis. Se o usuário citar algo que não existe, pergunte.
+- Pergunte quando houver comportamento indefinido, regra contraditória, resultado esperado desconhecido ou dois comportamentos igualmente plausíveis. Quando o padrão atual do sistema já responde algo de forma óbvia, não pergunte: registre como regra ou premissa.
+
+Registro:
+- Chame update_brief sempre que aprender algo novo: objetivo, regras de negócio, critérios de aceite, sistemas prováveis, perguntas em aberto ou respostas a perguntas.
+- Critérios de aceite devem ser verificáveis. Ex.: "Na lista de pedidos, exibir a coluna Previsão de entrega no formato dd/mm/aaaa".
+- Em likely_systems, use exatamente os nomes dos sistemas que aparecem nos perfis.
+
+Encerramento:
+- Quando não houver mais dúvidas de negócio bloqueantes, faça um resumo curto do entendimento e pergunte se pode enviar para planejamento.
+- Só chame submit_for_planning depois que o usuário confirmar.
+- Não monte cards nem plano técnico: isso é feito depois por outro agente.
+
+Responda sempre em português do Brasil.`;
+
+const INTAKE_SYSTEM_PROFILES = `# Perfis funcionais dos sistemas
+
+## Bridge
+Tipo: integração, sem interface de usuário.
+Papel: ponte entre o ERP da empresa e os demais sistemas. Disponibiliza dados de pedidos de compra, produtos, fornecedores e saldos de estoque vindos do ERP.
+
+Dados disponibilizados:
+- Pedidos de compra: número, fornecedor, loja de destino, itens, quantidades, valor, status (Aberto, Aprovado, Faturado, Entregue, Cancelado) e data de emissão.
+- Produtos: SKU, descrição, categoria, unidade.
+- Saldos de estoque por loja.
+
+Regras e particularidades:
+- O ERP é a fonte da verdade. O Bridge apenas lê os dados.
+- Alguns campos do ERP são opcionais e podem vir vazios, dependendo do fornecedor.
+- No ERP existe uma data prevista de entrega por pedido, preenchida pelo comprador na aprovação e que pode ser alterada depois. Hoje o Bridge não disponibiliza esse campo.
+
+## Stock.Api
+Tipo: serviço de backend do sistema de Estoque, sem interface própria.
+Papel: regras de negócio do estoque das lojas: acompanhamento de pedidos de compra, cálculo de ruptura e parâmetros de mínimo/máximo por produto e loja. Obtém pedidos, produtos e saldos do ERP por meio do Bridge.
+
+Regras conhecidas:
+- Pedidos e status são sincronizados com o ERP a cada 15 minutos.
+- Ruptura: produto com saldo disponível abaixo do estoque mínimo configurado para a loja.
+- Estoque mínimo e máximo são configurados por produto e loja pelos gerentes regionais.
+- Gerente de loja só acessa dados da própria loja. Comprador e gerente regional acessam todas as lojas da sua região.
+
+## Stock.Web
+Tipo: aplicação web usada pelas lojas e pelo time de compras.
+Usuários: compradores, gerentes de loja e gerentes regionais.
+
+Telas:
+- Lista de pedidos de compra: filtros por loja, fornecedor e status. Colunas: nº do pedido, fornecedor, loja, status, valor total e data de emissão. Permite exportar para Excel.
+- Detalhe do pedido: cabeçalho do pedido, itens com quantidades pedidas e recebidas, histórico de status.
+- Painel de ruptura: produtos em ruptura ou próximos do mínimo, por loja, com o pedido de compra em aberto relacionado, se houver.
+- Configuração de mínimo/máximo: edição dos parâmetros por produto e loja (somente gerente regional).
+
+Regras conhecidas:
+- Gerente de loja só vê dados da própria loja.
+- Dados vindos do ERP podem ter até 15 minutos de defasagem. A tela mostra "Atualizado em" no topo.
+
+Glossário:
+- Ruptura: produto sem saldo suficiente para venda na loja.
+- Pedido em aberto: pedido com status Aberto ou Aprovado.`;
+
+const INTAKE_TOOLS = [
+  {
+    name: 'update_brief',
+    description: 'Atualiza o brief da demanda com o que foi aprendido na conversa. Retorna o brief completo atualizado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Título curto da demanda, com até 8 palavras' },
+        objective: { type: 'string', description: 'Objetivo de negócio em uma ou duas frases' },
+        add_business_rules: { type: 'array', items: { type: 'string' } },
+        add_acceptance_criteria: { type: 'array', items: { type: 'string' } },
+        likely_systems: { type: 'array', items: { type: 'string' }, description: 'Substitui a lista atual' },
+        add_open_questions: { type: 'array', items: { type: 'string' } },
+        answer_questions: {
+          type: 'array',
+          description: 'Perguntas em aberto que foram respondidas. Use o texto exato da pergunta no brief.',
+          items: {
+            type: 'object',
+            properties: { question: { type: 'string' }, answer: { type: 'string' } },
+            required: ['question', 'answer'],
+          },
+        },
+      },
+    },
+  },
+  {
+    name: 'submit_for_planning',
+    description: 'Envia o brief para planejamento. Use somente quando não houver dúvidas de negócio bloqueantes e o usuário tiver confirmado o resumo.',
+    input_schema: {
+      type: 'object',
+      properties: { readiness_justification: { type: 'string' } },
+      required: ['readiness_justification'],
+    },
+  },
+];
+
+// Papel e dependência de cada sistema, só para desenhar os chips do brief.
+const KNOWN_SYSTEMS = {
+  'Stock.Web': { role: 'Front do Estoque', consumes: 'Stock.Api', order: 0 },
+  'Stock.Api': { role: 'Backend do Estoque', consumes: 'Bridge', order: 1 },
+  Bridge: { role: 'Integração com o ERP', order: 2 },
+};
+const TOOL_LABELS = {
+  update_brief: 'Atualizando o brief',
+  submit_for_planning: 'Enviando para planejamento',
+};
+const CONFIRM_REPLIES = ['Sim, pode enviar', 'Quero ajustar algo'];
+
+class IntakeError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = 'IntakeError';
+    this.code = code;
+  }
+}
+
+/** Lê uma resposta text/event-stream e devolve o JSON de cada campo data. */
+async function* readSse(response) {
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = '';
+  const parse = (block) => {
+    const data = block.split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).replace(/^ /, ''))
+      .join('\n');
+    if (!data) return null;
+    try { return JSON.parse(data); } catch (e) { return null; }
+  };
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let match;
+      while ((match = /\r?\n\r?\n/.exec(buffer))) {
+        const event = parse(buffer.slice(0, match.index));
+        buffer = buffer.slice(match.index + match[0].length);
+        if (event) yield event;
+      }
+    }
+    const last = parse(buffer);
+    if (last) yield last;
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+}
+
+function vertexEndpoint({ project, location, model }) {
+  const host = location === 'global' ? 'aiplatform.googleapis.com' : `${location}-aiplatform.googleapis.com`;
+  return `https://${host}/v1/projects/${project}/locations/${location}/publishers/anthropic/models/${model}:streamRawPredict`;
+}
+
+async function vertexError(response) {
+  let detail = '';
+  try {
+    const raw = await response.text();
+    try {
+      const parsed = JSON.parse(raw);
+      const body = Array.isArray(parsed) ? parsed[0] : parsed;
+      detail = (body && body.error && body.error.message) || raw;
+    } catch (e) {
+      detail = raw;
+    }
+  } catch (e) { /* corpo ilegível */ }
+  detail = String(detail).trim().slice(0, 280);
+  const status = response.status;
+  if (status === 401) return new IntakeError('O Vertex recusou o access token (401). Ele pode ter expirado: gere outro com gcloud auth print-access-token e cole em Conexão.', 'auth');
+  if (status === 403) return new IntakeError(`A conta do token não tem permissão para usar esse modelo no projeto (403). ${detail}`, 'auth');
+  if (status === 404) return new IntakeError(`Projeto, região ou modelo não encontrado (404). Confira em Conexão. ${detail}`, 'config');
+  if (status === 429) return new IntakeError('O Vertex limitou as chamadas (429). Aguarde um pouco e envie de novo.', 'rate');
+  if (status >= 500) return new IntakeError(`O Vertex respondeu com erro ${status}. Envie de novo.`, 'server');
+  return new IntakeError(`O Vertex recusou a requisição (${status}). ${detail}`, 'request');
+}
+
+const normalizeText = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const pad2 = (n) => String(n).padStart(2, '0');
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+function textId(prefix, text) {
+  let hash = 0;
+  for (const ch of normalizeText(text)) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return `${prefix}-${(hash >>> 0).toString(36)}`;
+}
+
+// Acha a pergunta em aberto que o modelo respondeu: texto igual ou muito parecido.
+function matchQuestion(questions, text) {
+  const target = normalizeText(text);
+  const exact = questions.findIndex((q) => normalizeText(q) === target);
+  if (exact >= 0) return exact;
+  const words = (s) => new Set(normalizeText(s).split(' ').filter((w) => w.length > 2));
+  const a = words(text);
+  let best = -1;
+  let bestScore = 0.6;
+  questions.forEach((q, i) => {
+    const b = words(q);
+    let shared = 0;
+    for (const w of a) if (b.has(w)) shared += 1;
+    const score = shared / (a.size + b.size - shared || 1);
+    if (score >= bestScore) { best = i; bestScore = score; }
+  });
+  return best;
+}
+
+function validateBriefUpdate(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return 'A entrada precisa ser um objeto.';
+  for (const key of ['title', 'objective']) {
+    if (input[key] !== undefined && typeof input[key] !== 'string') return `${key} precisa ser texto.`;
+  }
+  for (const key of ['add_business_rules', 'add_acceptance_criteria', 'likely_systems', 'add_open_questions']) {
+    const value = input[key];
+    if (value !== undefined && !(Array.isArray(value) && value.every((v) => typeof v === 'string'))) return `${key} precisa ser uma lista de textos.`;
+  }
+  const answers = input.answer_questions;
+  if (answers !== undefined && !(Array.isArray(answers) && answers.every((a) => a && typeof a.question === 'string' && typeof a.answer === 'string'))) {
+    return 'answer_questions precisa ser uma lista de { question, answer }.';
+  }
+  return null;
+}
+
+// A pergunta final da IA pede confirmação para enviar ao planejamento?
+function asksToSubmit(text) {
+  const tail = text.trim().split(/\n{2,}/).slice(-2).join(' ');
+  return /(enviar|envio|mandar|encaminhar|seguir)[^?]*planejamento[^?]*\?/i.test(tail);
+}
+
+// Opções que a IA listou no fim da pergunta viram respostas rápidas.
+function extractOptions(text) {
+  const lines = text.trim().split('\n');
+  const items = [];
+  let i = lines.length - 1;
+  for (; i >= 0; i -= 1) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const m = line.match(/^(?:\d+[.)]|[-*•])\s+(.+)$/);
+    if (!m) break;
+    items.unshift(m[1]);
+  }
+  const before = lines.slice(0, i + 1).join('\n');
+  if (items.length < 2 || items.length > 6 || !before.includes('?')) return [];
+  return items
+    .map((item) => item.replace(/\*\*|`/g, '').replace(/\s+/g, ' ').trim().replace(/[.;:]$/, ''))
+    .filter((item) => item && item.length <= 140);
+}
+
 /**
- * Adaptador para a API real, com o mesmo contrato. Cada chamada é um POST que
- * responde text/event-stream; cada evento SSE traz um IntakeEvent em JSON no
- * campo data. O primeiro evento da sessão informa o id: { type: "session", sessionId }.
- * Os caminhos abaixo são uma proposta; ajuste ao backend quando ele existir.
+ * Serviço real: conversa com o Claude no Vertex AI, executa as tools no front
+ * e traduz tudo para os mesmos eventos da simulação.
+ */
+function createVertexIntakeService({ getSettings }) {
+  let session = newSession();
+
+  function newSession() {
+    return {
+      messages: [],
+      status: 'understanding',
+      origin: null,
+      protocol: null,
+      submittedAt: null,
+      readiness: null,
+      updatedAt: null,
+      brief: {
+        version: 0, title: null, objective: null,
+        business_rules: [], acceptance_criteria: [], likely_systems: [],
+        open_questions: [], clarifications: [],
+      },
+    };
+  }
+
+  // Brief no formato que o modelo enxerga (system e tool_result).
+  function modelBrief(s) {
+    const b = s.brief;
+    return {
+      version: b.version,
+      ...(b.title ? { title: b.title } : {}),
+      objective: b.objective,
+      business_rules: b.business_rules,
+      acceptance_criteria: b.acceptance_criteria,
+      likely_systems: b.likely_systems,
+      open_questions: b.open_questions,
+      clarifications: b.clarifications,
+    };
+  }
+
+  // Brief no formato da UI (o mesmo contrato da simulação).
+  function uiBrief(s) {
+    const b = s.brief;
+    const systemId = (name) => normalizeText(name).replace(/ /g, '-');
+    const order = (name) => (KNOWN_SYSTEMS[name] ? KNOWN_SYSTEMS[name].order : 99);
+    return {
+      version: b.version,
+      status: s.status,
+      title: b.title,
+      origin: s.origin,
+      objective: b.objective,
+      rules: b.business_rules.map((text, i) => ({ id: `RN${pad2(i + 1)}`, text })),
+      acceptance: b.acceptance_criteria.map((text, i) => ({ id: `CA${pad2(i + 1)}`, text })),
+      systems: [...b.likely_systems].sort((x, y) => order(x) - order(y)).map((name) => {
+        const known = KNOWN_SYSTEMS[name];
+        return { id: systemId(name), name, role: known ? known.role : '', consumes: known && known.consumes ? systemId(known.consumes) : undefined };
+      }),
+      openQuestions: b.open_questions.map((text) => ({ id: textId('q', text), text })),
+      clarifications: b.clarifications.map((c, i) => ({ id: `cl-${i + 1}`, question: c.question, answer: c.answer })),
+      protocol: s.protocol,
+      submittedAt: s.submittedAt,
+      updatedAt: s.updatedAt,
+      readiness: s.readiness,
+    };
+  }
+
+  function* setStatus(s, value) {
+    if (s.status === value) return;
+    s.status = value;
+    yield { type: 'status', value };
+  }
+
+  function applyBriefUpdate(s, input) {
+    const b = s.brief;
+    const notes = [];
+    const clean = (v) => String(v).trim();
+    const append = (list, items) => {
+      let added = 0;
+      for (const item of (items || []).map(clean)) {
+        if (item && !list.some((x) => normalizeText(x) === normalizeText(item))) { list.push(item); added += 1; }
+      }
+      return added;
+    };
+    if (input.title && clean(input.title) !== b.title) b.title = clean(input.title);
+    if (input.objective && clean(input.objective) !== b.objective) { b.objective = clean(input.objective); notes.push('objetivo'); }
+    const rules = append(b.business_rules, input.add_business_rules);
+    if (rules) notes.push(plural(rules, 'regra', 'regras'));
+    const criteria = append(b.acceptance_criteria, input.add_acceptance_criteria);
+    if (criteria) notes.push(plural(criteria, 'critério', 'critérios'));
+    if (input.likely_systems) {
+      const next = [];
+      append(next, input.likely_systems);
+      if (JSON.stringify(next) !== JSON.stringify(b.likely_systems)) { b.likely_systems = next; notes.push(`sistemas: ${next.join(', ') || 'nenhum'}`); }
+    }
+    for (const qa of input.answer_questions || []) {
+      const index = matchQuestion(b.open_questions, qa.question);
+      const question = index >= 0 ? b.open_questions.splice(index, 1)[0] : clean(qa.question);
+      b.clarifications.push({ question, answer: clean(qa.answer) });
+    }
+    if (input.answer_questions && input.answer_questions.length) notes.push(plural(input.answer_questions.length, 'resposta', 'respostas'));
+    const questions = append(b.open_questions, input.add_open_questions);
+    if (questions) notes.push(plural(questions, 'pergunta nova', 'perguntas novas'));
+    b.version += 1;
+    s.updatedAt = new Date().toISOString();
+    return notes.join(' · ') || 'sem mudanças';
+  }
+
+  async function* runTool(s, block) {
+    const actId = `act-${block.id}`;
+    const label = TOOL_LABELS[block.name] || `Executando ${block.name}`;
+    const done = (result) => ({ type: 'tool_activity', id: actId, label, state: 'done', result });
+    const fail = (message) => ({ type: 'tool_result', tool_use_id: block.id, is_error: true, content: message });
+
+    if (block.invalidJson !== undefined) {
+      yield done('entrada inválida');
+      return fail(JSON.stringify({ INVALID_JSON: block.invalidJson }));
+    }
+    if (block.name === 'update_brief') {
+      const problem = validateBriefUpdate(block.input);
+      if (problem) { yield done('entrada inválida'); return fail(problem); }
+      const summary = applyBriefUpdate(s, block.input);
+      if (s.status === 'understanding' && s.brief.objective) yield* setStatus(s, 'clarifying');
+      yield { type: 'brief_updated', brief: uiBrief(s) };
+      yield done(summary);
+      return { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(modelBrief(s)) };
+    }
+    if (block.name === 'submit_for_planning') {
+      const why = block.input && block.input.readiness_justification;
+      if (typeof why !== 'string' || !why.trim()) { yield done('entrada inválida'); return fail('readiness_justification é obrigatório.'); }
+      if (s.status !== 'submitted') {
+        s.protocol = `DEM-${Math.floor(1000 + Math.random() * 9000)}`;
+        s.submittedAt = new Date().toISOString();
+        s.updatedAt = s.submittedAt;
+        s.readiness = why.trim();
+        s.brief.version += 1;
+        s.status = 'submitted';
+        yield { type: 'brief_updated', brief: uiBrief(s) };
+        yield { type: 'status', value: 'submitted' };
+      }
+      yield done(`protocolo ${s.protocol}`);
+      return { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify({ status: 'submitted', protocol: s.protocol }) };
+    }
+    yield done('ferramenta desconhecida');
+    return fail(`Ferramenta desconhecida: ${block.name}`);
+  }
+
+  // Uma chamada ao modelo em streaming. Repassa texto e início de tools como
+  // eventos e devolve a mensagem completa do assistente.
+  async function* callModel(s, settings, signal, turn) {
+    const body = {
+      anthropic_version: 'vertex-2023-10-16',
+      max_tokens: VERTEX_MAX_TOKENS,
+      stream: true,
+      system: [
+        { type: 'text', text: INTAKE_SYSTEM_PROMPT },
+        { type: 'text', text: INTAKE_SYSTEM_PROFILES, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: '# Brief atual\n```json\n' + JSON.stringify(modelBrief(s), null, 2) + '\n```' },
+      ],
+      tools: INTAKE_TOOLS,
+      messages: s.messages,
+    };
+    console.debug('[intake] → Vertex', JSON.parse(JSON.stringify(body)));
+
+    let response;
+    try {
+      response = await fetch(vertexEndpoint(settings), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${settings.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
+      throw new IntakeError('Não consegui chamar o Vertex a partir do navegador. Confira a internet. Se a página estiver aberta dentro do claude.ai, abra o index.html localmente: essa visualização bloqueia chamadas externas.', 'network');
+    }
+    if (!response.ok || !response.body) throw await vertexError(response);
+
+    const blocks = [];
+    const usage = {};
+    let stopReason = null;
+    let text = '';
+    let gapPending = false;
+    for await (const data of readSse(response)) {
+      if (data.type === 'message_start') {
+        Object.assign(usage, data.message && data.message.usage);
+      } else if (data.type === 'content_block_start') {
+        const start = data.content_block || {};
+        if (start.type === 'text') {
+          blocks[data.index] = { type: 'text', text: '' };
+          gapPending = turn.text.length > 0 && !turn.text.endsWith('\n\n');
+        } else if (start.type === 'tool_use') {
+          blocks[data.index] = { type: 'tool_use', id: start.id, name: start.name, json: '' };
+          yield { type: 'tool_activity', id: `act-${start.id}`, label: TOOL_LABELS[start.name] || `Executando ${start.name}`, state: 'running' };
+        }
+      } else if (data.type === 'content_block_delta') {
+        const block = blocks[data.index];
+        const delta = data.delta || {};
+        if (block && delta.type === 'text_delta' && delta.text) {
+          if (gapPending) { gapPending = false; turn.text += '\n\n'; yield { type: 'text_delta', text: '\n\n' }; }
+          block.text += delta.text;
+          text += delta.text;
+          turn.text += delta.text;
+          yield { type: 'text_delta', text: delta.text };
+        } else if (block && delta.type === 'input_json_delta') {
+          block.json += delta.partial_json || '';
+        }
+      } else if (data.type === 'message_delta') {
+        stopReason = (data.delta && data.delta.stop_reason) || stopReason;
+        Object.assign(usage, data.usage);
+      } else if (data.type === 'error') {
+        throw new IntakeError(`O Vertex interrompeu a resposta: ${(data.error && data.error.message) || 'erro desconhecido'}`, 'server');
+      }
+    }
+
+    const content = [];
+    for (const block of blocks) {
+      if (!block) continue;
+      if (block.type === 'text') {
+        if (block.text) content.push({ type: 'text', text: block.text });
+      } else {
+        let input = {};
+        let invalidJson;
+        try { input = block.json ? JSON.parse(block.json) : {}; } catch (e) { invalidJson = block.json; }
+        content.push({ type: 'tool_use', id: block.id, name: block.name, input, ...(invalidJson !== undefined ? { invalidJson } : {}) });
+      }
+    }
+    if (!stopReason) throw new IntakeError('A conexão com o Vertex caiu no meio da resposta. Envie de novo.', 'network');
+    if (text) turn.lastText = text;
+    console.debug('[intake] ← Vertex', { stopReason, usage, content });
+    return { content, stopReason };
+  }
+
+  return {
+    async *start({ signal } = {}) {
+      session = newSession();
+      yield { type: 'thinking' };
+      yield { type: 'status', value: 'understanding' };
+      const greeting = 'Olá! Eu faço o intake das demandas de produto. Conte, com as suas palavras, o que você precisa: um problema, uma ideia ou uma mudança numa tela ou processo.\n\nVou fazer perguntas de negócio, uma de cada vez, e registrar tudo no brief. Quando não houver mais dúvidas, envio para o planejamento.';
+      for (const chunk of greeting.match(/\s*\S+/g)) {
+        if (signal && signal.aborted) throw new DOMException('A operação foi cancelada.', 'AbortError');
+        yield { type: 'text_delta', text: chunk };
+        await new Promise((resolve) => setTimeout(resolve, 12));
+      }
+      yield { type: 'suggestions', options: ['Queria que o pessoal das lojas conseguisse ver quando o pedido de compra vai chegar.'] };
+      yield { type: 'done' };
+    },
+
+    async *sendMessage(text, { signal } = {}) {
+      const s = session;
+      const settings = { ...getSettings() };
+      if (!settings.token) {
+        yield { type: 'error', code: 'auth', message: 'Cole um access token do Google Cloud em Conexão para conversar com a IA.' };
+        yield { type: 'done' };
+        return;
+      }
+      if (s.status === 'submitted') {
+        yield { type: 'text_delta', text: `Esta demanda já foi enviada para planejamento com o protocolo **${s.protocol}**. Para registrar outra necessidade, comece uma nova demanda.` };
+        yield { type: 'done' };
+        return;
+      }
+
+      const checkpoint = s.messages.length;
+      s.messages.push({ role: 'user', content: text });
+      if (!s.origin) {
+        s.origin = text;
+        yield { type: 'brief_updated', brief: uiBrief(s) };
+      }
+      const turn = { text: '', lastText: '' };
+      try {
+        for (let step = 0; ; step += 1) {
+          if (step >= VERTEX_MAX_STEPS) throw new IntakeError('A IA encadeou chamadas demais sem responder. Envie a mensagem de novo.', 'loop');
+          yield { type: 'thinking' };
+          const result = yield* callModel(s, settings, signal, turn);
+          if (result.stopReason === 'refusal') throw new IntakeError('O modelo não quis responder a essa mensagem. Reformule e envie de novo.', 'refusal');
+          const toolUses = result.content.filter((b) => b.type === 'tool_use');
+          if (result.stopReason === 'max_tokens' && toolUses.length) throw new IntakeError('A resposta do modelo foi cortada antes de terminar. Envie de novo.', 'truncated');
+          if (result.content.length) {
+            s.messages.push({ role: 'assistant', content: result.content.map(({ invalidJson, ...b }) => b) });
+          }
+          if (result.stopReason !== 'tool_use' || !toolUses.length) break;
+          const results = [];
+          for (const block of toolUses) results.push(yield* runTool(s, block));
+          s.messages.push({ role: 'user', content: results });
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') throw err;
+        s.messages.length = checkpoint; // a mensagem pode ser enviada de novo sem duplicar o histórico
+        if (!(err instanceof IntakeError)) console.error(err);
+        yield {
+          type: 'error',
+          code: err instanceof IntakeError ? err.code : 'network',
+          message: err instanceof IntakeError ? err.message : 'A conexão com o Vertex caiu no meio da resposta. Envie de novo.',
+        };
+        yield { type: 'done' };
+        return;
+      }
+
+      if (s.status !== 'submitted') {
+        const next = asksToSubmit(turn.lastText) ? 'ready' : s.brief.objective ? 'clarifying' : 'understanding';
+        yield* setStatus(s, next);
+        const options = extractOptions(turn.lastText);
+        if (options.length) yield { type: 'suggestions', options };
+        else if (s.status === 'ready') yield { type: 'suggestions', options: CONFIRM_REPLIES };
+      }
+      yield { type: 'done' };
+    },
+
+    debug() {
+      return { messages: session.messages, brief: modelBrief(session), status: session.status };
+    },
+  };
+}
+
+/**
+ * Adaptador para uma API própria de intake, com o mesmo contrato. Cada chamada
+ * é um POST que responde text/event-stream; cada evento SSE traz um IntakeEvent
+ * em JSON no campo data. O primeiro evento da sessão informa o id:
+ * { type: "session", sessionId }. Os caminhos são uma proposta.
  */
 function createSseIntakeService({ baseUrl, headers = {} }) {
   const root = String(baseUrl).replace(/\/$/, '');
@@ -1546,29 +2290,9 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
       signal,
     });
     if (!response.ok || !response.body) throw new Error(`O serviço de intake respondeu ${response.status}.`);
-    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-    try {
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += value.replace(/\r\n?/g, '\n');
-        let cut;
-        while ((cut = buffer.indexOf('\n\n')) !== -1) {
-          const block = buffer.slice(0, cut);
-          buffer = buffer.slice(cut + 2);
-          const data = block.split('\n')
-            .filter((line) => line.startsWith('data:'))
-            .map((line) => line.slice(5).replace(/^ /, ''))
-            .join('\n');
-          if (!data) continue;
-          const event = JSON.parse(data);
-          if (event.type === 'session') { sessionId = event.sessionId; continue; }
-          yield event;
-        }
-      }
-    } finally {
-      reader.cancel().catch(() => {});
+    for await (const event of readSse(response)) {
+      if (event.type === 'session') { sessionId = event.sessionId; continue; }
+      yield event;
     }
   }
 
@@ -1590,9 +2314,45 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
 <script>
 'use strict';
 (function () {
-  const service = window.INTAKE_API_URL
-    ? createSseIntakeService({ baseUrl: window.INTAKE_API_URL })
-    : createSimulatedIntakeService({ speed: window.INTAKE_SIM_SPEED });
+  const SETTINGS_KEY = 'intake-settings';
+  const TOKEN_KEY = 'intake-token';
+  const settings = loadSettings();
+  let service = createService();
+
+  // Preferências ficam no localStorage; o token, só no sessionStorage desta aba.
+  function loadSettings() {
+    const result = { mode: window.INTAKE_DEFAULT_MODE === 'simulated' ? 'simulated' : 'vertex', ...VERTEX_DEFAULTS, token: '', tokenAt: null };
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      if (saved.mode === 'vertex' || saved.mode === 'simulated') result.mode = saved.mode;
+      for (const key of ['project', 'location', 'model']) if (typeof saved[key] === 'string' && saved[key]) result[key] = saved[key];
+    } catch (e) { /* sem preferências salvas */ }
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
+      if (saved && typeof saved.token === 'string') { result.token = saved.token; result.tokenAt = saved.at || null; }
+    } catch (e) { /* token fica só em memória */ }
+    return result;
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ mode: settings.mode, project: settings.project, location: settings.location, model: settings.model }));
+    } catch (e) { /* preferências valem só nesta visita */ }
+    try {
+      if (settings.token) sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ token: settings.token, at: settings.tokenAt }));
+      else sessionStorage.removeItem(TOKEN_KEY);
+    } catch (e) { /* token fica só em memória */ }
+  }
+
+  function usesVertex() {
+    return !window.INTAKE_API_URL && settings.mode === 'vertex';
+  }
+
+  function createService() {
+    if (window.INTAKE_API_URL) return createSseIntakeService({ baseUrl: window.INTAKE_API_URL });
+    if (settings.mode === 'vertex') return createVertexIntakeService({ getSettings: () => settings });
+    return createSimulatedIntakeService({ speed: window.INTAKE_SIM_SPEED });
+  }
 
   const $ = (selector) => document.querySelector(selector);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1620,6 +2380,21 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     badge: $('#brief-count'),
     themeToggle: $('#theme-toggle'),
     restart: $('#restart'),
+    conn: $('#conn'),
+    connLabel: $('#conn-label'),
+    brandTag: $('#brand-tag'),
+    settings: $('#settings'),
+    settingsForm: $('#settings-form'),
+    settingsCancel: $('#settings-cancel'),
+    vertexFields: $('#vertex-fields'),
+    setToken: $('#set-token'),
+    setTokenShow: $('#set-token-show'),
+    tokenAge: $('#token-age'),
+    setProject: $('#set-project'),
+    setLocation: $('#set-location'),
+    setModel: $('#set-model'),
+    setNotice: $('#settings-notice'),
+    modeNote: $('#mode-note'),
     scrim: $('#scrim'),
     brief: $('#brief'),
     briefClose: $('#brief-close'),
@@ -1692,16 +2467,48 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function formatInline(s) {
     return escapeHtml(s)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*\*([^*]*)$/, '<strong>$1</strong>') // negrito ainda chegando no streaming
-      .replace(/\*\*/g, '');
+      .replace(/\*\*/g, '')
+      .replace(/(^|[^\w*])\*(?=\S)([^*]+?)\*(?!\w)/g, '$1<em>$2</em>');
   }
+  // Markdown simples que a IA usa: parágrafos, listas, títulos e ênfases.
   function formatMessage(raw) {
-    return raw.split(/\n{2,}/)
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .map((p) => `<p>${formatInline(p).replace(/\n/g, '<br>')}</p>`)
-      .join('');
+    const out = [];
+    let paragraph = [];
+    let list = null;
+    const flushParagraph = () => {
+      if (paragraph.length) out.push(`<p>${paragraph.join('<br>')}</p>`);
+      paragraph = [];
+    };
+    const flushList = () => {
+      if (list) {
+        const start = list.start > 1 ? ` start="${list.start}"` : '';
+        out.push(`<${list.tag}${start}>${list.items.map((item) => `<li>${item}</li>`).join('')}</${list.tag}>`);
+      }
+      list = null;
+    };
+    for (const rawLine of raw.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || /^([-*_])\1{2,}$/.test(line)) { flushParagraph(); flushList(); continue; }
+      const ordered = line.match(/^(\d+)[.)]\s+(.*)$/);
+      const bullet = line.match(/^[-*•]\s+(.*)$/);
+      if (ordered || bullet) {
+        flushParagraph();
+        const tag = ordered ? 'ol' : 'ul';
+        if (!list || list.tag !== tag) { flushList(); list = { tag, start: ordered ? Number(ordered[1]) : 1, items: [] }; }
+        list.items.push(formatInline(ordered ? ordered[2] : bullet[1]));
+        continue;
+      }
+      flushList();
+      const heading = line.match(/^#{1,4}\s+(.*)$/);
+      if (heading) { flushParagraph(); out.push(`<p class="msg-heading">${formatInline(heading[1])}</p>`); continue; }
+      paragraph.push(formatInline(line));
+    }
+    flushParagraph();
+    flushList();
+    return out.join('');
   }
   const plain = (raw) => raw.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
   const fmtTime = (d) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1915,10 +2722,10 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
 
   // ---- Consumo dos eventos ---------------------------------------------------
 
-  async function run(stream) {
+  async function run(stream, sentText) {
     const session = app.session;
     const turn = createAssistantTurn();
-    const ctx = { fresh: 0, suggestions: [] };
+    const ctx = { fresh: 0, suggestions: [], error: null };
     setBusy(true);
     try {
       for await (const ev of stream) {
@@ -1930,13 +2737,14 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
           case 'brief_updated': ctx.fresh += renderBrief(ev.brief); break;
           case 'suggestions': ctx.suggestions = ev.options || []; turn.suggestions(ctx.suggestions); break;
           case 'status': setStatus(ev.value); break;
-          case 'error': turn.error(ev.message); break;
+          case 'error': ctx.error = ev; turn.error(ev.message); break;
           default: break; // "done" e eventos desconhecidos
         }
       }
     } catch (err) {
       if (session !== app.session || (err && err.name === 'AbortError')) return;
       console.error(err);
+      ctx.error = { code: 'unknown' };
       turn.error();
     } finally {
       if (session === app.session) {
@@ -1947,6 +2755,11 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
         if (ctx.fresh) parts.push(`Brief atualizado com ${ctx.fresh} ${ctx.fresh === 1 ? 'registro novo' : 'registros novos'}.`);
         if (ctx.suggestions.length) parts.push(`Respostas sugeridas: ${ctx.suggestions.join('; ')}.`);
         if (parts.length) announce(parts.join(' '));
+        if (ctx.error) {
+          // Devolve a mensagem ao campo para reenviar sem redigitar.
+          if (sentText && !els.input.value.trim()) { els.input.value = sentText; autosize(); updateSend(); }
+          if (ctx.error.code === 'auth' || ctx.error.code === 'config') openSettings({ notice: ctx.error.message });
+        }
         if (app.status === 'submitted') showDoneCard();
       }
     }
@@ -1959,6 +2772,11 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
       els.hintStatus.textContent = 'Aguarde a resposta terminar para enviar.';
       return;
     }
+    if (usesVertex() && !settings.token) {
+      if (viaChip && !els.input.value.trim()) { els.input.value = value; autosize(); updateSend(); }
+      openSettings({ notice: 'Cole um access token para conversar com a IA. Sua mensagem continua no campo de texto.' });
+      return;
+    }
     if (app.suggestTurn) { app.suggestTurn.clearSuggestions(); app.suggestTurn = null; }
     addUserTurn(value);
     if (!viaChip) {
@@ -1969,7 +2787,7 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     els.jump.hidden = true;
     scrollToBottom();
     app.controller = new AbortController();
-    run(service.sendMessage(value, { signal: app.controller.signal }));
+    run(service.sendMessage(value, { signal: app.controller.signal }), value);
     if (!(viaChip && coarsePointer.matches)) els.input.focus({ preventScroll: true });
   }
 
@@ -2219,7 +3037,9 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     els.stampMeta.textContent = `${fmtStampDate(at)} · ${b.protocol || ''}`;
     els.stamp.hidden = false;
     els.sheet.classList.add('is-closed');
-    els.foot.textContent = `Brief fechado em ${fmtDate(at)} às ${fmtTime(at)}. O planejamento parte desta versão (v${b.version}).`;
+    els.foot.replaceChildren(
+      h('span', { text: `Brief fechado em ${fmtDate(at)} às ${fmtTime(at)}. O planejamento parte desta versão (v${b.version}).` }),
+      b.readiness ? h('span', { class: 'foot-why', text: `Por que está pronto: ${b.readiness}` }) : null);
     els.foot.hidden = false;
     if (isBriefVisible()) playStamp();
     else app.pendingStamp = true;
@@ -2392,7 +3212,112 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     }
   });
 
+  // ---- Conexão com a IA --------------------------------------------------------
+
+  function syncConnection() {
+    if (window.INTAKE_API_URL) {
+      els.conn.hidden = true;
+      els.brandTag.textContent = 'Protótipo · API de intake';
+      return;
+    }
+    const state = settings.mode !== 'vertex' ? 'simulated' : settings.token ? 'ok' : 'missing';
+    const [label, title] = {
+      ok: ['Vertex', `Conectado ao Vertex AI · ${settings.model}`],
+      missing: ['Colar token', 'Cole um access token para usar o Vertex AI'],
+      simulated: ['Simulação', 'Usando a IA simulada, sem chamadas externas'],
+    }[state];
+    els.conn.dataset.state = state;
+    els.connLabel.textContent = label;
+    els.conn.title = title;
+    els.conn.setAttribute('aria-label', `Conexão com a IA: ${label}`);
+    els.brandTag.textContent = settings.mode === 'vertex' ? `Protótipo · Vertex · ${settings.model}` : 'Protótipo · IA simulada';
+  }
+
+  function selectedMode() {
+    const checked = els.settingsForm.querySelector('input[name="mode"]:checked');
+    return checked ? checked.value : settings.mode;
+  }
+
+  function syncSettingsForm() {
+    els.vertexFields.disabled = selectedMode() !== 'vertex';
+    els.modeNote.hidden = selectedMode() === settings.mode;
+  }
+
+  function showNotice(message) {
+    els.setNotice.textContent = message || '';
+    els.setNotice.hidden = !message;
+  }
+
+  function openSettings({ notice } = {}) {
+    if (els.settings.open) { showNotice(notice); return; }
+    els.settingsForm.querySelectorAll('input[name="mode"]').forEach((radio) => { radio.checked = radio.value === settings.mode; });
+    els.setToken.value = settings.token;
+    els.setToken.type = 'password';
+    els.setTokenShow.textContent = 'Mostrar';
+    els.setTokenShow.setAttribute('aria-pressed', 'false');
+    els.setProject.value = settings.project;
+    els.setLocation.value = settings.location;
+    els.setModel.value = settings.model;
+    if (settings.token && settings.tokenAt) {
+      const minutes = Math.floor((Date.now() - settings.tokenAt) / 60000);
+      els.tokenAge.textContent = `Token colado ${minutes < 1 ? 'agora há pouco' : `há ${minutes} min`}.${minutes >= 55 ? ' Ele pode ter expirado.' : ''}`;
+      els.tokenAge.hidden = false;
+    } else {
+      els.tokenAge.hidden = true;
+    }
+    showNotice(notice);
+    syncSettingsForm();
+    els.settings.showModal();
+    if (settings.mode === 'vertex') {
+      els.setToken.focus();
+      els.setToken.select();
+    }
+  }
+
+  els.settingsForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mode = selectedMode();
+    const token = els.setToken.value.trim().replace(/^Bearer\s+/i, '').replace(/\s+/g, '');
+    const project = els.setProject.value.trim() || VERTEX_DEFAULTS.project;
+    const location = els.setLocation.value.trim() || VERTEX_DEFAULTS.location;
+    const model = els.setModel.value.trim() || VERTEX_DEFAULTS.model;
+    if (mode === 'vertex') {
+      if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project)) { showNotice('Confira o ID do projeto: letras minúsculas, números e hífens.'); return; }
+      if (!/^[a-z0-9-]+$/.test(location)) { showNotice('Confira a região, por exemplo global ou us-east5.'); return; }
+      if (!/^[a-z0-9][a-z0-9.@-]*$/i.test(model)) { showNotice('Confira o ID do modelo, por exemplo claude-sonnet-4-6.'); return; }
+    }
+    const modeChanged = mode !== settings.mode;
+    if (token !== settings.token) {
+      settings.token = token;
+      settings.tokenAt = token ? Date.now() : null;
+    }
+    Object.assign(settings, { mode, project, location, model });
+    saveSettings();
+    syncConnection();
+    els.settings.close();
+    if (modeChanged) {
+      service = createService();
+      startSession();
+    }
+    if (!coarsePointer.matches) els.input.focus({ preventScroll: true });
+  });
+  els.settingsForm.addEventListener('change', (e) => {
+    if (e.target.name === 'mode') syncSettingsForm();
+  });
+  els.settingsCancel.addEventListener('click', () => els.settings.close());
+  els.setTokenShow.addEventListener('click', () => {
+    const show = els.setToken.type === 'password';
+    els.setToken.type = show ? 'text' : 'password';
+    els.setTokenShow.textContent = show ? 'Ocultar' : 'Mostrar';
+    els.setTokenShow.setAttribute('aria-pressed', String(show));
+  });
+  els.conn.addEventListener('click', () => openSettings());
+
+  // Para inspecionar no console o histórico enviado ao modelo.
+  window.intakeDebug = () => (service.debug ? service.debug() : null);
+
   syncThemeButton();
+  syncConnection();
   startSession();
   if (!coarsePointer.matches) els.input.focus({ preventScroll: true });
 })();

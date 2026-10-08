@@ -21,24 +21,25 @@
    a folha do brief que a IA vai preenchendo como um documento de trabalho. */
 :root {
   /* Cor */
-  --paper: #EDF1EF;
-  --surface: #FAFCFB;
-  --surface-2: #E2E8E5;
-  --ink: #14201C;
-  --ink-2: #43514C;
-  --ink-3: #5A6762;
-  --line: #D2DAD6;
-  --line-strong: #B3BFBA;
-  --accent: #0E6B5B;
-  --accent-hover: #0A5A4C;
-  --accent-ink: #F3FAF8;
-  --accent-soft: #D5EAE3;
+  --paper: #F4F1E7;
+  --surface: #FCFBF6;
+  --surface-2: #EAE6D6;
+  --ink: #1F1D14;
+  --ink-2: #4D4A3C;
+  --ink-3: #625E4E;
+  --line: #DDD8C4;
+  --line-strong: #BFB89D;
+  --accent: #D5C06B;
+  --accent-hover: #C4AE50;
+  --accent-ink: #2A2308;
+  --accent-soft: #F0E9C6;
+  --accent-text: #6B5A14;
   --mark: #F8E59B;
   --danger: #A3392A;
   --warn: #A86400;
-  --shadow-sheet: 0 1px 2px rgb(20 32 28 / .05), 0 18px 40px -24px rgb(20 32 28 / .3);
-  --shadow-float: 0 1px 2px rgb(20 32 28 / .06), 0 10px 24px -12px rgb(20 32 28 / .24);
-  --scrim: rgb(13 20 18 / .42);
+  --shadow-sheet: 0 1px 2px rgb(31 29 20 / .05), 0 18px 40px -24px rgb(31 29 20 / .3);
+  --shadow-float: 0 1px 2px rgb(31 29 20 / .06), 0 10px 24px -12px rgb(31 29 20 / .24);
+  --scrim: rgb(20 18 10 / .42);
 
   /* Tipo */
   --font-ui: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -61,18 +62,19 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0D1311;
-    --surface: #141C1A;
-    --surface-2: #1D2825;
-    --ink: #E2EAE6;
-    --ink-2: #AEBAB5;
-    --ink-3: #8D9A95;
-    --line: #26322E;
-    --line-strong: #3B4945;
-    --accent: #5CC0A8;
-    --accent-hover: #7AD0BB;
-    --accent-ink: #062520;
-    --accent-soft: #15332D;
+    --paper: #12110C;
+    --surface: #1A1812;
+    --surface-2: #25221A;
+    --ink: #EBE7D8;
+    --ink-2: #B9B4A1;
+    --ink-3: #98937F;
+    --line: #2D2A1F;
+    --line-strong: #474230;
+    --accent: #D5C06B;
+    --accent-hover: #E3D18A;
+    --accent-ink: #231D05;
+    --accent-soft: #342E14;
+    --accent-text: #D5C06B;
     --mark: rgb(236 200 84 / .3);
     --danger: #EC8A75;
   --warn: #E2A33A;
@@ -83,18 +85,19 @@
   }
 }
 :root[data-theme="dark"] {
-  --paper: #0D1311;
-  --surface: #141C1A;
-  --surface-2: #1D2825;
-  --ink: #E2EAE6;
-  --ink-2: #AEBAB5;
-  --ink-3: #8D9A95;
-  --line: #26322E;
-  --line-strong: #3B4945;
-  --accent: #5CC0A8;
-  --accent-hover: #7AD0BB;
-  --accent-ink: #062520;
-  --accent-soft: #15332D;
+  --paper: #12110C;
+  --surface: #1A1812;
+  --surface-2: #25221A;
+  --ink: #EBE7D8;
+  --ink-2: #B9B4A1;
+  --ink-3: #98937F;
+  --line: #2D2A1F;
+  --line-strong: #474230;
+  --accent: #D5C06B;
+  --accent-hover: #E3D18A;
+  --accent-ink: #231D05;
+  --accent-soft: #342E14;
+  --accent-text: #D5C06B;
   --mark: rgb(236 200 84 / .3);
   --danger: #EC8A75;
   --warn: #E2A33A;
@@ -119,7 +122,7 @@ body {
 button, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 svg { display: block; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 kbd {
   font: 500 var(--fs-2xs)/1 var(--font-mono);
   padding: 2px 5px;
@@ -147,9 +150,11 @@ kbd {
 }
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--brief-w);
+  grid-template-columns: minmax(0, 1fr) 0px;
   min-height: 0;
+  transition: grid-template-columns .7s var(--ease);
 }
+.app.has-brief .workspace { grid-template-columns: minmax(0, 1fr) var(--brief-w); }
 
 /* ---------- Barra superior ---------- */
 .topbar {
@@ -237,7 +242,7 @@ kbd {
 .step[data-state="done"] { color: var(--ink-2); }
 .step[data-state="done"] .step-mark { background: var(--accent); border-color: var(--accent); }
 .step[data-state="done"] .step-mark svg { opacity: 1; transform: none; }
-.steps[data-complete="true"] .step:last-child { color: var(--accent); font-weight: 600; }
+.steps[data-complete="true"] .step:last-child { color: var(--accent-text); font-weight: 600; }
 
 .actions { display: flex; align-items: center; gap: 8px; justify-self: end; }
 .btn {
@@ -328,7 +333,7 @@ kbd {
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.turn--ai .who { color: var(--accent); }
+.turn--ai .who { color: var(--accent-text); }
 .turn-meta time {
   font: 400 var(--fs-2xs)/1.3 var(--font-mono);
   color: var(--ink-3);
@@ -422,7 +427,7 @@ kbd {
   animation: spin .9s linear infinite;
 }
 .acts-icon svg { display: none; width: 12px; height: 12px; }
-.acts[data-state="done"] .acts-icon { animation: none; border-color: transparent; color: var(--accent); }
+.acts[data-state="done"] .acts-icon { animation: none; border-color: transparent; color: var(--accent-text); }
 .acts[data-state="done"] .acts-icon svg { display: block; }
 .acts-chevron svg { width: 14px; height: 14px; transition: transform .25s var(--ease); }
 .acts[data-collapsed="true"] .acts-chevron svg { transform: rotate(-90deg); }
@@ -608,7 +613,13 @@ kbd {
   background: var(--paper);
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+  /* Sem conteúdo, o painel fica recolhido: a coluna vai a 0 e a folha entra depois. */
+  overflow-x: hidden;
+  visibility: hidden;
+  border-left-color: transparent;
+  transition: visibility 0s linear .7s, border-color .5s;
 }
+.app.has-brief .brief { visibility: visible; border-left-color: var(--line); transition: visibility 0s, border-color .5s .15s; }
 .brief:focus-visible { outline-offset: -3px; }
 .drawer-bar { display: none; }
 .brief-sheet {
@@ -618,8 +629,13 @@ kbd {
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow-sheet);
-  transition: border-color .5s;
+  transition: border-color .5s, opacity .55s var(--ease), transform .7s var(--ease);
+  min-width: calc(var(--brief-w) - 41px);
+  opacity: 0;
+  transform: translateX(28px) scale(.98);
+  transform-origin: left center;
 }
+.app.has-brief .brief-sheet { opacity: 1; transform: none; transition-delay: 0s, .18s, .18s; }
 .brief-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brief-heading {
   margin: 0;
@@ -638,7 +654,7 @@ kbd {
   text-transform: uppercase;
   transition: background .3s, color .3s;
 }
-.pill[data-tone="ready"] { background: var(--accent-soft); color: var(--accent); }
+.pill[data-tone="ready"] { background: var(--accent-soft); color: var(--accent-text); }
 .pill[data-tone="submitted"] { background: var(--accent); color: var(--accent-ink); }
 .brief-title {
   margin: 12px 0 6px;
@@ -685,7 +701,7 @@ kbd {
   gap: 8px;
   margin: 0;
   font: 500 .875rem/1.4 var(--font-ui);
-  color: var(--accent);
+  color: var(--accent-text);
   animation: fade-in .4s ease .7s both;
 }
 .bsec-done svg { width: 16px; height: 16px; }
@@ -706,7 +722,7 @@ kbd {
   min-width: 2.6em;
   font: 600 var(--fs-2xs)/1 var(--font-mono);
   letter-spacing: .02em;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 .item-text { font: 400 var(--fs-base)/1.5 var(--font-doc); overflow-wrap: anywhere; transition: color .3s; }
@@ -714,7 +730,7 @@ kbd {
   font: 600 .66rem/1 var(--font-ui);
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .q-mark {
   align-self: start;
@@ -796,7 +812,7 @@ kbd {
   border-radius: 8px;
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   text-transform: uppercase;
   transform: rotate(-7deg);
   pointer-events: none;
@@ -837,7 +853,7 @@ kbd {
   box-shadow: var(--shadow-sheet);
 }
 .settings[open] { animation: turn-in .3s var(--ease) both; }
-.settings::backdrop { background: rgb(6 10 9 / .5); }
+.settings::backdrop { background: rgb(10 9 5 / .5); }
 .settings-form { display: flex; flex-direction: column; gap: 18px; padding: 22px 24px 20px; }
 .settings-title { margin: 0; font: 500 1.375rem/1.2 var(--font-doc); }
 .settings-sub { margin: 4px 0 0; font-size: .875rem; color: var(--ink-3); }
@@ -878,7 +894,7 @@ kbd {
   color: var(--ink);
   font: 400 .9375rem var(--font-ui);
 }
-.field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field input:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
 #set-token { font: 400 .8125rem var(--font-mono); }
 .token-row { display: flex; gap: 8px; }
 .token-row .btn { height: 40px; flex: none; }
@@ -936,6 +952,7 @@ kbd {
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 4px var(--accent-soft); } }
 @keyframes caret { to { visibility: hidden; } }
 @keyframes bump { 0%, 100% { transform: none; } 35% { transform: scale(1.3); } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.85); } to { opacity: 1; transform: none; } }
 @keyframes attention { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 5px var(--accent-soft); } }
 
 /* ---------- Responsivo ---------- */
@@ -950,8 +967,14 @@ kbd {
   :root { --gutter: 16px; }
   .topbar { grid-template-columns: minmax(0, 1fr) auto; padding-block: 10px; }
   .progress { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
-  .workspace { grid-template-columns: minmax(0, 1fr); }
-  .btn-brief, .btn-view-brief { display: inline-flex; }
+  .workspace, .app.has-brief .workspace { grid-template-columns: minmax(0, 1fr); transition: none; }
+  .btn-view-brief { display: inline-flex; }
+  .app.has-brief .btn-brief { display: inline-flex; animation: pop-in .5s var(--ease); }
+  .brief-sheet { min-width: 0; opacity: 1; transform: none; }
+  .brief { visibility: hidden; }
+  .app.has-brief .brief { visibility: hidden; }
+  .app .brief { border-left-color: var(--line); transition: transform .36s var(--ease), visibility 0s linear .36s; }
+  .app .brief.is-open, .app.has-brief .brief.is-open { visibility: visible; transition: transform .36s var(--ease), visibility 0s; }
 
   .brief {
     position: fixed;
@@ -2377,6 +2400,7 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     doneNew: $('#done-new'),
     steps: $('#steps'),
     progressCount: $('#progress-count'),
+    app: $('.app'),
     briefToggle: $('#brief-toggle'),
     badge: $('#brief-count'),
     themeToggle: $('#theme-toggle'),
@@ -2959,6 +2983,11 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     return (b.objective ? 1 : 0) + b.rules.length + b.acceptance.length + b.systems.length + b.openQuestions.length + b.clarifications.length;
   }
 
+  // O painel só aparece quando a IA já alimentou alguma coisa no brief.
+  function hasBriefContent(b) {
+    return !!b && !!(b.title || b.origin || countItems(b));
+  }
+
   /** Aplica um snapshot do brief e devolve quantos registros são novos ou mudaram. */
   function renderBrief(b) {
     const prev = app.brief || {};
@@ -3009,6 +3038,7 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     if (submitted && prev.status !== 'submitted') closeBrief(b, at);
 
     const total = countItems(b);
+    els.app.classList.toggle('has-brief', hasBriefContent(b));
     els.badge.textContent = String(total);
     els.briefToggle.setAttribute('aria-label', `Abrir brief da demanda (${total} ${total === 1 ? 'item' : 'itens'})`);
     if (touched.length && !isBriefVisible()) {
@@ -3080,6 +3110,7 @@ function createSseIntakeService({ baseUrl, headers = {} }) {
     els.sheet.classList.remove('is-closed', 'is-stamping');
     els.foot.hidden = true;
     els.badge.textContent = '0';
+    els.app.classList.remove('has-brief');
     els.briefToggle.setAttribute('aria-label', 'Abrir brief da demanda (0 itens)');
     els.briefToggle.classList.remove('is-attention');
     els.brief.scrollTop = 0;
